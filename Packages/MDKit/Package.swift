@@ -7,6 +7,7 @@ let package = Package(
     products: [
         .library(name: "MarkdownCore", targets: ["MarkdownCore"]),
         .library(name: "PreviewKit", targets: ["PreviewKit"]),
+        .library(name: "EditorKit", targets: ["EditorKit"]),
     ],
     dependencies: [
         // gfm branch, pinned to an exact commit so app and package builds are reproducible.
@@ -20,5 +21,7 @@ let package = Package(
         .testTarget(name: "MarkdownCoreTests", dependencies: ["MarkdownCore"]),
         .target(name: "PreviewKit", dependencies: ["MarkdownCore"]),
         .testTarget(name: "PreviewKitTests", dependencies: ["PreviewKit"]),
+        .target(name: "EditorKit"),
+        .testTarget(name: "EditorKitTests", dependencies: ["EditorKit"]),
     ]
 )
