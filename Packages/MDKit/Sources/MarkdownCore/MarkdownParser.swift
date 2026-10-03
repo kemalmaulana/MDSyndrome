@@ -9,7 +9,9 @@ public enum MarkdownParser {
 
     public static func parse(_ text: String, options: MarkdownOptions = .default) -> MarkdownDocument {
         _ = registerExtensions
-        let protected = ProtectedSource(text: text, spans: [])
+        let protected = options.math
+            ? MathExtractor.protect(text, singleDollar: options.singleDollarMath)
+            : ProtectedSource(text: text, spans: [])
 
         var flags = CMARK_OPT_SOURCEPOS
         if options.footnotes { flags |= CMARK_OPT_FOOTNOTES }
