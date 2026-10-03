@@ -1,0 +1,52 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+  workflow_dispatch:
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  test:
+    name: Build & test
+    runs-on: macos-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Select the newest stable Xcode (needs the macOS 26 SDK)
+        uses: maxim-lobanov/setup-xcode@v1
+        with:
+          xcode-version: latest-stable
+
+      - name: Install XcodeGen
+        run: brew install xcodegen
+
+      - name: Cache Swift packages
+        uses: actions/cache@v4
+        with:
+          path: |
+            Packages/MDKit/.build
+            build/DerivedData/SourcePackages
+          key: spm-${{ runner.os }}-${{ hashFiles('Packages/MDKit/Package.resolved', 'project.yml') }}
+          restore-keys: spm-${{ runner.os }}-
+
+      - name: Toolchain
+        run: xcodebuild -version && swift --version
+
+      # Lint (WebKit containment) + MDKit package tests + app unit tests.
+      # UI tests are left to local runs: they need an interactive, focused desktop session.
+      - name: make test
+        run: make test
+
+      - name: Upload test results on failure
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: test-results
+          path: build/DerivedData/Logs/Test
+          if-no-files-found: ignore

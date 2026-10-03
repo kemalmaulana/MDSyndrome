@@ -7,3 +7,4 @@ DerivedData/
 build/
 MDSyndrome/Resources/Info.plist
 .superpowers/
+dist/

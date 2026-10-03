@@ -1,0 +1,102 @@
+name: Release
+
+on:
+  push:
+    tags: ['v*']
+  workflow_dispatch:
+    inputs:
+      version:
+        description: Version to build (dry run, no GitHub Release is created)
+        required: true
+        default: 0.0.0-dev
+
+permissions:
+  contents: write
+
+concurrency:
+  group: release-${{ github.ref }}
+
+jobs:
+  release:
+    name: Build, package & publish
+    runs-on: macos-latest
+    timeout-minutes: 45
+    env:
+      # Optional trust chain. Leave these secrets unset for an ad-hoc signed build.
+      MACOS_CERTIFICATE_P12: ${{ secrets.MACOS_CERTIFICATE_P12 }}
+      MACOS_CERTIFICATE_PASSWORD: ${{ secrets.MACOS_CERTIFICATE_PASSWORD }}
+      DEVELOPER_ID_APPLICATION: ${{ secrets.DEVELOPER_ID_APPLICATION }}
+      NOTARY_APPLE_ID: ${{ secrets.NOTARY_APPLE_ID }}
+      NOTARY_TEAM_ID: ${{ secrets.NOTARY_TEAM_ID }}
+      NOTARY_PASSWORD: ${{ secrets.NOTARY_PASSWORD }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Resolve version
+        id: version
+        run: |
+          if [[ "$GITHUB_REF_TYPE" == "tag" ]]; then
+            VERSION="${GITHUB_REF_NAME#v}"
+          else
+            VERSION="${{ inputs.version }}"
+          fi
+          [[ "$VERSION" =~ ^[0-9]+\.[0-9]+\.[0-9]+(-[0-9A-Za-z.-]+)?$ ]] || { echo "::error::'$VERSION' is not semver"; exit 1; }
+          echo "version=$VERSION" >> "$GITHUB_OUTPUT"
+          echo "prerelease=$([[ "$VERSION" == *-* ]] && echo true || echo false)" >> "$GITHUB_OUTPUT"
+
+      - name: Select the newest stable Xcode (needs the macOS 26 SDK)
+        uses: maxim-lobanov/setup-xcode@v1
+        with:
+          xcode-version: latest-stable
+
+      - name: Install XcodeGen
+        run: brew install xcodegen
+
+      - name: Test before shipping
+        run: make test
+
+      - name: Import Developer ID certificate
+        if: env.MACOS_CERTIFICATE_P12 != ''
+        run: |
+          KEYCHAIN="$RUNNER_TEMP/release.keychain-db"
+          KEYCHAIN_PASSWORD="$(uuidgen)"
+          echo "$MACOS_CERTIFICATE_P12" | base64 --decode > "$RUNNER_TEMP/cert.p12"
+          security create-keychain -p "$KEYCHAIN_PASSWORD" "$KEYCHAIN"
+          security set-keychain-settings -lut 21600 "$KEYCHAIN"
+          security unlock-keychain -p "$KEYCHAIN_PASSWORD" "$KEYCHAIN"
+          security import "$RUNNER_TEMP/cert.p12" -P "$MACOS_CERTIFICATE_PASSWORD" -A -t cert -f pkcs12 -k "$KEYCHAIN"
+          security set-key-partition-list -S apple-tool:,apple: -k "$KEYCHAIN_PASSWORD" "$KEYCHAIN"
+          security list-keychains -d user -s "$KEYCHAIN" $(security list-keychains -d user | tr -d '"')
+          rm "$RUNNER_TEMP/cert.p12"
+
+      - name: Build & package (universal .zip + .dmg)
+        run: make dist VERSION=${{ steps.version.outputs.version }} BUILD=${{ github.run_number }}
+
+      - name: Upload build artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: MDSyndrome-${{ steps.version.outputs.version }}
+          path: dist/*
+
+      - name: Publish GitHub Release
+        if: github.ref_type == 'tag'
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          VERSION="${{ steps.version.outputs.version }}"
+          SIGNED="ad-hoc signed — on first launch, right-click the app → **Open** (or run \`xattr -dr com.apple.quarantine /Applications/MDSyndrome.app\`)."
+          [[ -n "$DEVELOPER_ID_APPLICATION" ]] && SIGNED="signed with Developer ID$([[ -n "$NOTARY_APPLE_ID" ]] && echo ' and notarized by Apple')."
+          cat > "$RUNNER_TEMP/notes.md" <<NOTES
+          ## 💊 Install
+
+          1. Download **MDSyndrome-$VERSION.dmg** below and drag **MDSyndrome** into **Applications**.
+          2. Requires **macOS 26** or later — universal binary, native on Apple Silicon (no Rosetta).
+          3. This build is $SIGNED
+
+          Verify your download: \`shasum -a 256 -c SHA256SUMS.txt\`
+          NOTES
+          gh release create "$GITHUB_REF_NAME" dist/* \
+            --title "MDSyndrome $VERSION" \
+            --notes-file "$RUNNER_TEMP/notes.md" \
+            --generate-notes \
+            $([[ "${{ steps.version.outputs.prerelease }}" == "true" ]] && echo --prerelease)
