@@ -6,5 +6,8 @@ struct MDSyndromeApp: App {
         DocumentGroup(newDocument: MarkdownFileDocument()) { file in
             DocumentWindow(document: file.$document, fileURL: file.fileURL)
         }
+        .commands {
+            ViewCommands()
+        }
     }
 }
