@@ -1,0 +1,98 @@
+name: MDSyndrome
+options:
+  bundleIdPrefix: com.kemalmaulana
+  deploymentTarget:
+    macOS: "26.0"
+  createIntermediateGroups: true
+settings:
+  base:
+    SWIFT_VERSION: "6.0"
+    SWIFT_STRICT_CONCURRENCY: complete
+    MACOSX_DEPLOYMENT_TARGET: "26.0"
+    CODE_SIGN_IDENTITY: "-"
+    CODE_SIGN_STYLE: Manual
+    DEVELOPMENT_TEAM: ""
+    ENABLE_HARDENED_RUNTIME: YES
+    ENABLE_USER_SCRIPT_SANDBOXING: YES
+    DEAD_CODE_STRIPPING: YES
+packages:
+  MDKit:
+    path: Packages/MDKit
+targets:
+  MDSyndrome:
+    type: application
+    platform: macOS
+    sources:
+      - path: MDSyndrome
+    dependencies:
+      - package: MDKit
+        product: MarkdownCore
+      - package: MDKit
+        product: PreviewKit
+      - package: MDKit
+        product: EditorKit
+    settings:
+      base:
+        PRODUCT_BUNDLE_IDENTIFIER: com.kemalmaulana.mdsyndrome
+        PRODUCT_NAME: MDSyndrome
+        MARKETING_VERSION: "0.1.0"
+        CURRENT_PROJECT_VERSION: "1"
+        GENERATE_INFOPLIST_FILE: NO
+        INFOPLIST_FILE: MDSyndrome/Resources/Info.plist
+        ENABLE_APP_SANDBOX: NO
+    info:
+      path: MDSyndrome/Resources/Info.plist
+      properties:
+        CFBundleName: MDSyndrome
+        CFBundleDisplayName: MDSyndrome
+        CFBundleShortVersionString: $(MARKETING_VERSION)
+        CFBundleVersion: $(CURRENT_PROJECT_VERSION)
+        LSMinimumSystemVersion: $(MACOSX_DEPLOYMENT_TARGET)
+        LSApplicationCategoryType: public.app-category.productivity
+        NSHumanReadableCopyright: Copyright © 2026 Kemal Maulana. MIT License.
+        CFBundleDocumentTypes:
+          - CFBundleTypeName: Markdown Document
+            CFBundleTypeRole: Editor
+            LSHandlerRank: Default
+            LSItemContentTypes: [net.daringfireball.markdown]
+          - CFBundleTypeName: Plain Text
+            CFBundleTypeRole: Viewer
+            LSHandlerRank: Alternate
+            LSItemContentTypes: [public.plain-text]
+        UTImportedTypeDeclarations:
+          - UTTypeIdentifier: net.daringfireball.markdown
+            UTTypeDescription: Markdown Document
+            UTTypeConformsTo: [public.plain-text]
+            UTTypeTagSpecification:
+              public.filename-extension: [md, markdown, mdown, mkd, mkdn]
+              public.mime-type: [text/markdown]
+  MDSyndromeTests:
+    type: bundle.unit-test
+    platform: macOS
+    sources: [MDSyndromeTests]
+    dependencies:
+      - target: MDSyndrome
+    settings:
+      base:
+        GENERATE_INFOPLIST_FILE: YES
+        ENABLE_HARDENED_RUNTIME: NO
+  MDSyndromeUITests:
+    type: bundle.ui-testing
+    platform: macOS
+    sources: [MDSyndromeUITests]
+    dependencies:
+      - target: MDSyndrome
+    settings:
+      base:
+        GENERATE_INFOPLIST_FILE: YES
+        ENABLE_HARDENED_RUNTIME: NO
+        TEST_TARGET_NAME: MDSyndrome
+schemes:
+  MDSyndrome:
+    build:
+      targets:
+        MDSyndrome: all
+    test:
+      targets:
+        - MDSyndromeTests
+        - MDSyndromeUITests
