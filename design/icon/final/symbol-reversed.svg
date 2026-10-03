@@ -1,0 +1,8 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 256 256">
+  <title>MDSyndrome (reversed, for dark backgrounds)</title>
+  <!-- Paper outline thinned to 14 units: light-on-dark reads heavier (irradiation). -->
+  <g transform="rotate(-45 128 128)">
+    <path fill="#F7F4EF" fill-rule="evenodd" d="M123 80H72a48 48 0 0 0 0 96h51zM109 94H72a34 34 0 0 0 0 68h37z"/>
+    <path fill="#FF5E4D" d="M133 80h51a48 48 0 0 1 0 96h-51z"/>
+  </g>
+</svg>

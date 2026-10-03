@@ -6,3 +6,4 @@ DerivedData/
 .swiftpm/
 build/
 MDSyndrome/Resources/Info.plist
+.superpowers/

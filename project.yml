@@ -40,6 +40,7 @@ targets:
         GENERATE_INFOPLIST_FILE: NO
         INFOPLIST_FILE: MDSyndrome/Resources/Info.plist
         ENABLE_APP_SANDBOX: NO
+        ASSETCATALOG_COMPILER_APPICON_NAME: AppIcon
     info:
       path: MDSyndrome/Resources/Info.plist
       properties:

@@ -1,0 +1,6 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 256 256">
+  <title>MDSyndrome — M-arrow</title>
+  <!-- M stems 36 wide at x=54/202; 45° diagonals meet at (128,122); the meeting point drops as a shaft into a 45° ↓ head that pierces the baseline. -->
+  <path d="M54 176V48l74 74 74-74v128" fill="none" stroke="#000" stroke-width="36" stroke-linejoin="miter" stroke-miterlimit="10"/>
+  <path d="M110 118h36v58h32l-50 50-50-50h32z"/>
+</svg>

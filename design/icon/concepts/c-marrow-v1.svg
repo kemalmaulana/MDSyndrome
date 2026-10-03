@@ -1,0 +1,5 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 256 256">
+  <!-- M: stems at x=54/202 (36 wide), diagonals meet at (128,136); the meeting point drops as a shaft into a ↓ arrowhead. -->
+  <path d="M54 200V58l74 82 74-82v142" fill="none" stroke="#000" stroke-width="36" stroke-linejoin="miter" stroke-miterlimit="10"/>
+  <path d="M110 136h36v58h30l-48 52-48-52h30z"/>
+</svg>

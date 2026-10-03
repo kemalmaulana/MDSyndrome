@@ -1,0 +1,5 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 256 256">
+  <title>MDSyndrome — MD plus</title>
+  <!-- Greek cross, arms 48 thick, width 192; bottom arm ends in a 45° arrowhead (markdown ↓). Total height 200, top at 28 so the crossbar centre (124) sits just above geometric centre. -->
+  <path d="M104 28h48v72h72v48h-72v24h32l-56 56-56-56h32v-24H32v-48h72z"/>
+</svg>

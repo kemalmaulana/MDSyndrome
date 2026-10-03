@@ -1,0 +1,8 @@
+<svg fill="#ff5e4d" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 256 256"><title>MDSyndrome</title>
+  
+  <!-- Capsule 208×96 (r48) rotated −45° about the centre. Raw half: 16-unit outline (ink). Rendered half: solid (coral). 10-unit seam. -->
+  <g transform="rotate(-45 128 128)">
+    <path fill="#ff5e4d" fill-rule="evenodd" d="M123 80H72a48 48 0 0 0 0 96h51zM107 96H72a32 32 0 0 0 0 64h35z"/>
+    <path fill="#ff5e4d" d="M133 80h51a48 48 0 0 1 0 96h-51z"/>
+  </g>
+</svg>

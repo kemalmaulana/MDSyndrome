@@ -1,0 +1,77 @@
+<svg xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" width="1600" height="840" viewBox="0 0 1600 840"><defs><filter id="grey"><feColorMatrix type="saturate" values="0"/></filter></defs><rect width="1600" height="840" fill="#f7f7f4"/><text x="60" y="78" font-family="system-ui,-apple-system,'Segoe UI',Helvetica,Arial,sans-serif" font-size="40" font-weight="700" fill="#161616">MDSyndrome — app icon concepts</text><text x="60" y="116" font-family="system-ui,-apple-system,'Segoe UI',Helvetica,Arial,sans-serif" font-size="20" fill="#6b6b6b">Concepts for review — pick a direction (or tell me what you like in each).</text><rect x="60" y="150" width="474.667" height="630" rx="18" fill="#fff" stroke="#e4e4e0" stroke-width="1"/><g filter="url(#grey)"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 256 256" x="90" y="190" width="414.667" height="300" preserveAspectRatio="xMidYMid meet">
+  <title>MDSyndrome — split capsule</title>
+  <!-- Capsule 208x96 (r48) centred, rotated -45°. Left half outlined (raw source), right half solid (rendered). 8px seam. -->
+  <g transform="rotate(-45 128 128)">
+    <path fill-rule="evenodd" d="M124 80H72a48 48 0 0 0 0 96h52zM110 94H72a34 34 0 0 0 0 68h38z"/>
+    <path d="M132 80h52a48 48 0 0 1 0 96h-52z"/>
+  </g>
+</svg>
+</g><g filter="url(#grey)"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 256 256" x="90" y="516" width="64" height="64" preserveAspectRatio="xMidYMid meet">
+  <title>MDSyndrome — split capsule</title>
+  <!-- Capsule 208x96 (r48) centred, rotated -45°. Left half outlined (raw source), right half solid (rendered). 8px seam. -->
+  <g transform="rotate(-45 128 128)">
+    <path fill-rule="evenodd" d="M124 80H72a48 48 0 0 0 0 96h52zM110 94H72a34 34 0 0 0 0 68h38z"/>
+    <path d="M132 80h52a48 48 0 0 1 0 96h-52z"/>
+  </g>
+</svg>
+</g><text x="122" y="600" font-family="system-ui,-apple-system,'Segoe UI',Helvetica,Arial,sans-serif" font-size="12" fill="#8a8a8a" text-anchor="middle">64px</text><g filter="url(#grey)"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 256 256" x="180" y="548" width="32" height="32" preserveAspectRatio="xMidYMid meet">
+  <title>MDSyndrome — split capsule</title>
+  <!-- Capsule 208x96 (r48) centred, rotated -45°. Left half outlined (raw source), right half solid (rendered). 8px seam. -->
+  <g transform="rotate(-45 128 128)">
+    <path fill-rule="evenodd" d="M124 80H72a48 48 0 0 0 0 96h52zM110 94H72a34 34 0 0 0 0 68h38z"/>
+    <path d="M132 80h52a48 48 0 0 1 0 96h-52z"/>
+  </g>
+</svg>
+</g><text x="196" y="600" font-family="system-ui,-apple-system,'Segoe UI',Helvetica,Arial,sans-serif" font-size="12" fill="#8a8a8a" text-anchor="middle">32px</text><g filter="url(#grey)"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 256 256" x="238" y="564" width="16" height="16" preserveAspectRatio="xMidYMid meet">
+  <title>MDSyndrome — split capsule</title>
+  <!-- Capsule 208x96 (r48) centred, rotated -45°. Left half outlined (raw source), right half solid (rendered). 8px seam. -->
+  <g transform="rotate(-45 128 128)">
+    <path fill-rule="evenodd" d="M124 80H72a48 48 0 0 0 0 96h52zM110 94H72a34 34 0 0 0 0 68h38z"/>
+    <path d="M132 80h52a48 48 0 0 1 0 96h-52z"/>
+  </g>
+</svg>
+</g><text x="246" y="600" font-family="system-ui,-apple-system,'Segoe UI',Helvetica,Arial,sans-serif" font-size="12" fill="#8a8a8a" text-anchor="middle">16px</text><text x="90.0" y="636" font-family="system-ui,-apple-system,'Segoe UI',Helvetica,Arial,sans-serif" font-size="26" font-weight="700" fill="#161616">A · Split Capsule</text><text x="90.0" y="670" font-family="system-ui,-apple-system,'Segoe UI',Helvetica,Arial,sans-serif" font-size="19" fill="#555">A pill split into raw (outline) and</text><text x="90.0" y="696" font-family="system-ui,-apple-system,'Segoe UI',Helvetica,Arial,sans-serif" font-size="19" fill="#555">rendered (solid) halves: editor | preview,</text><text x="90.0" y="722" font-family="system-ui,-apple-system,'Segoe UI',Helvetica,Arial,sans-serif" font-size="19" fill="#555">and the &#x27;syndrome&#x27; joke.</text><rect x="562.667" y="150" width="474.667" height="630" rx="18" fill="#fff" stroke="#e4e4e0" stroke-width="1"/><g filter="url(#grey)"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 256 256" x="592.667" y="190" width="414.667" height="300" preserveAspectRatio="xMidYMid meet">
+  <title>MDSyndrome — MD plus</title>
+  <!-- Greek cross, arms 48 thick, width 192; bottom arm ends in a 45° arrowhead (markdown ↓). Total height 200, top at 28 so the crossbar centre (124) sits just above geometric centre. -->
+  <path d="M104 28h48v72h72v48h-72v24h32l-56 56-56-56h32v-24H32v-48h72z"/>
+</svg>
+</g><g filter="url(#grey)"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 256 256" x="592.667" y="516" width="64" height="64" preserveAspectRatio="xMidYMid meet">
+  <title>MDSyndrome — MD plus</title>
+  <!-- Greek cross, arms 48 thick, width 192; bottom arm ends in a 45° arrowhead (markdown ↓). Total height 200, top at 28 so the crossbar centre (124) sits just above geometric centre. -->
+  <path d="M104 28h48v72h72v48h-72v24h32l-56 56-56-56h32v-24H32v-48h72z"/>
+</svg>
+</g><text x="624.667" y="600" font-family="system-ui,-apple-system,'Segoe UI',Helvetica,Arial,sans-serif" font-size="12" fill="#8a8a8a" text-anchor="middle">64px</text><g filter="url(#grey)"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 256 256" x="682.667" y="548" width="32" height="32" preserveAspectRatio="xMidYMid meet">
+  <title>MDSyndrome — MD plus</title>
+  <!-- Greek cross, arms 48 thick, width 192; bottom arm ends in a 45° arrowhead (markdown ↓). Total height 200, top at 28 so the crossbar centre (124) sits just above geometric centre. -->
+  <path d="M104 28h48v72h72v48h-72v24h32l-56 56-56-56h32v-24H32v-48h72z"/>
+</svg>
+</g><text x="698.667" y="600" font-family="system-ui,-apple-system,'Segoe UI',Helvetica,Arial,sans-serif" font-size="12" fill="#8a8a8a" text-anchor="middle">32px</text><g filter="url(#grey)"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 256 256" x="740.667" y="564" width="16" height="16" preserveAspectRatio="xMidYMid meet">
+  <title>MDSyndrome — MD plus</title>
+  <!-- Greek cross, arms 48 thick, width 192; bottom arm ends in a 45° arrowhead (markdown ↓). Total height 200, top at 28 so the crossbar centre (124) sits just above geometric centre. -->
+  <path d="M104 28h48v72h72v48h-72v24h32l-56 56-56-56h32v-24H32v-48h72z"/>
+</svg>
+</g><text x="748.667" y="600" font-family="system-ui,-apple-system,'Segoe UI',Helvetica,Arial,sans-serif" font-size="12" fill="#8a8a8a" text-anchor="middle">16px</text><text x="592.6666666666667" y="636" font-family="system-ui,-apple-system,'Segoe UI',Helvetica,Arial,sans-serif" font-size="26" font-weight="700" fill="#161616">B · MD Plus</text><text x="592.6666666666667" y="670" font-family="system-ui,-apple-system,'Segoe UI',Helvetica,Arial,sans-serif" font-size="19" fill="#555">A medical plus whose lower arm is the</text><text x="592.6666666666667" y="696" font-family="system-ui,-apple-system,'Segoe UI',Helvetica,Arial,sans-serif" font-size="19" fill="#555">Markdown down-arrow: MD meets MD.</text><rect x="1065.33" y="150" width="474.667" height="630" rx="18" fill="#fff" stroke="#161616" stroke-width="2"/><g filter="url(#grey)"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 256 256" x="1095.33" y="190" width="414.667" height="300" preserveAspectRatio="xMidYMid meet">
+  <title>MDSyndrome — M-arrow</title>
+  <!-- M stems 36 wide at x=54/202; 45° diagonals meet at (128,122); the meeting point drops as a shaft into a 45° ↓ head that pierces the baseline. -->
+  <path d="M54 176V48l74 74 74-74v128" fill="none" stroke="#000" stroke-width="36" stroke-linejoin="miter" stroke-miterlimit="10"/>
+  <path d="M110 118h36v58h32l-50 50-50-50h32z"/>
+</svg>
+</g><g filter="url(#grey)"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 256 256" x="1095.33" y="516" width="64" height="64" preserveAspectRatio="xMidYMid meet">
+  <title>MDSyndrome — M-arrow</title>
+  <!-- M stems 36 wide at x=54/202; 45° diagonals meet at (128,122); the meeting point drops as a shaft into a 45° ↓ head that pierces the baseline. -->
+  <path d="M54 176V48l74 74 74-74v128" fill="none" stroke="#000" stroke-width="36" stroke-linejoin="miter" stroke-miterlimit="10"/>
+  <path d="M110 118h36v58h32l-50 50-50-50h32z"/>
+</svg>
+</g><text x="1127.33" y="600" font-family="system-ui,-apple-system,'Segoe UI',Helvetica,Arial,sans-serif" font-size="12" fill="#8a8a8a" text-anchor="middle">64px</text><g filter="url(#grey)"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 256 256" x="1185.33" y="548" width="32" height="32" preserveAspectRatio="xMidYMid meet">
+  <title>MDSyndrome — M-arrow</title>
+  <!-- M stems 36 wide at x=54/202; 45° diagonals meet at (128,122); the meeting point drops as a shaft into a 45° ↓ head that pierces the baseline. -->
+  <path d="M54 176V48l74 74 74-74v128" fill="none" stroke="#000" stroke-width="36" stroke-linejoin="miter" stroke-miterlimit="10"/>
+  <path d="M110 118h36v58h32l-50 50-50-50h32z"/>
+</svg>
+</g><text x="1201.33" y="600" font-family="system-ui,-apple-system,'Segoe UI',Helvetica,Arial,sans-serif" font-size="12" fill="#8a8a8a" text-anchor="middle">32px</text><g filter="url(#grey)"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 256 256" x="1243.33" y="564" width="16" height="16" preserveAspectRatio="xMidYMid meet">
+  <title>MDSyndrome — M-arrow</title>
+  <!-- M stems 36 wide at x=54/202; 45° diagonals meet at (128,122); the meeting point drops as a shaft into a 45° ↓ head that pierces the baseline. -->
+  <path d="M54 176V48l74 74 74-74v128" fill="none" stroke="#000" stroke-width="36" stroke-linejoin="miter" stroke-miterlimit="10"/>
+  <path d="M110 118h36v58h32l-50 50-50-50h32z"/>
+</svg>
+</g><text x="1251.33" y="600" font-family="system-ui,-apple-system,'Segoe UI',Helvetica,Arial,sans-serif" font-size="12" fill="#8a8a8a" text-anchor="middle">16px</text><text x="1095.3333333333335" y="636" font-family="system-ui,-apple-system,'Segoe UI',Helvetica,Arial,sans-serif" font-size="26" font-weight="700" fill="#161616">C · M-Arrow</text><text x="1095.3333333333335" y="664" font-family="system-ui,-apple-system,'Segoe UI',Helvetica,Arial,sans-serif" font-size="15" font-weight="700" fill="#161616" letter-spacing="1.5">RECOMMENDED</text><text x="1095.3333333333335" y="698" font-family="system-ui,-apple-system,'Segoe UI',Helvetica,Arial,sans-serif" font-size="19" fill="#555">One M whose middle drops into the Markdown</text><text x="1095.3333333333335" y="724" font-family="system-ui,-apple-system,'Segoe UI',Helvetica,Arial,sans-serif" font-size="19" fill="#555">arrow, piercing the baseline.</text></svg>

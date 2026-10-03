@@ -1,0 +1,8 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 256 256" width="256" height="256"><title>MDSyndrome</title><rect width="256" height="256" rx="57.6" fill="#17181C"/><g transform="translate(12.03 12.03) scale(0.906)" fill="#ffffff">
+  
+  <!-- Small-size cut for ≤32 px: heavier 22-unit outline, 14-unit seam so the halves never fuse. -->
+  <g transform="rotate(-45 128 128)">
+    <path fill="#ffffff" fill-rule="evenodd" d="M121 80H72a48 48 0 0 0 0 96h49zM99 102H72a26 26 0 0 0 0 52h27z"/>
+    <path fill="#ffffff" d="M135 80h49a48 48 0 0 1 0 96h-49z"/>
+  </g>
+</g></svg>

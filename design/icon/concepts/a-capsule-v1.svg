@@ -1,0 +1,8 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 256 256">
+  <title>MDSyndrome — split capsule</title>
+  <!-- Capsule 208x96 (r48) centred, rotated -45°. Left half outlined (raw source), right half solid (rendered). 8px seam. -->
+  <g transform="rotate(-45 128 128)">
+    <path fill-rule="evenodd" d="M124 80H72a48 48 0 0 0 0 96h52zM110 94H72a34 34 0 0 0 0 68h38z"/>
+    <path d="M132 80h52a48 48 0 0 1 0 96h-52z"/>
+  </g>
+</svg>

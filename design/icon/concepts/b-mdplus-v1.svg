@@ -1,0 +1,4 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 256 256">
+  <!-- Greek cross, arms 48 thick spanning 32..224; bottom arm ends in a 112-wide arrowhead (markdown ↓). -->
+  <path d="M104 32h48v72h72v48h-72v24h32l-56 64-56-64h32v-24H32v-48h72z"/>
+</svg>
