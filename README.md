@@ -19,7 +19,7 @@
 </p>
 
 <p align="center">
-  <img src="docs/assets/window.svg" width="860" alt="Illustration of the MDSyndrome window: markdown source on the left, the rendered preview on the right">
+  <img src="design/readme/window.svg" width="860" alt="Illustration of the MDSyndrome window: markdown source on the left, the rendered preview on the right">
   <br><sub><i>Illustration of the current build. Real screenshots will ship with the first release.</i></sub>
 </p>
 
@@ -118,8 +118,7 @@ flowchart LR
 ├── Packages/MDKit/          MarkdownCore · PreviewKit · EditorKit (+ tests)
 ├── MDSyndromeTests/         app unit tests        MDSyndromeUITests/  UI tests
 ├── Fixtures/kitchen-sink.md every supported feature in one file
-├── design/icon/             logo & app-icon sources, exports, guidelines
-├── docs/superpowers/        PRD, implementation plans, verification notes
+├── design/                 logo & app-icon sources, exports, guidelines, README art
 ├── project.yml · Makefile   XcodeGen spec and every command above
 └── .github/workflows/       CI and releases
 ```
@@ -162,8 +161,6 @@ The divider between the panes can be dragged, and every window remembers its lay
 | Plan 6 | M6 | Export to HTML and PDF, print | |
 | Plan 7 | M7 | Performance and accessibility pass, Quick Look extension, Homebrew cask | |
 
-The full spec is in [`docs/superpowers/specs`](docs/superpowers/specs/2026-10-04-mdsyndrome-prd.md) and the step-by-step plans are in [`docs/superpowers/plans`](docs/superpowers/plans).
-
 ## 🚀 Shipping a release (maintainers)
 
 ```bash
@@ -198,7 +195,7 @@ Conventions:
 - Use [Conventional Commits](https://www.conventionalcommits.org) (`feat(preview): …`).
 - Keep WebKit inside `WebRenderKit`.
 
-Bigger changes start as a plan in `docs/superpowers/plans`. Good first patients:
+For bigger changes, open an issue first so we can agree on the approach. Good first patients:
 - the 🧪 rows above
 - any line of `Fixtures/kitchen-sink.md` that renders differently from GitHub
 

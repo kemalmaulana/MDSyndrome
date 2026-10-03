@@ -1,0 +1,87 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1200 720" font-family="-apple-system, BlinkMacSystemFont, 'Helvetica Neue', Helvetica, Arial, sans-serif">
+  <title>MDSyndrome window (illustration): markdown source on the left, native preview on the right</title>
+  <defs>
+    <filter id="shadow" x="-5%" y="-5%" width="110%" height="115%">
+      <feGaussianBlur in="SourceAlpha" stdDeviation="14"/><feOffset dy="12"/>
+      <feComponentTransfer><feFuncA type="linear" slope="0.22"/></feComponentTransfer>
+      <feMerge><feMergeNode/><feMergeNode in="SourceGraphic"/></feMerge>
+    </filter>
+    <clipPath id="win"><rect x="30" y="20" width="1140" height="670" rx="16"/></clipPath>
+  </defs>
+
+  <rect x="30" y="20" width="1140" height="670" rx="16" fill="#fff" filter="url(#shadow)"/>
+  <g clip-path="url(#win)">
+    <!-- title bar + toolbar -->
+    <rect x="30" y="20" width="1140" height="56" fill="#F6F5F3"/>
+    <circle cx="58" cy="48" r="7" fill="#FF5F57"/><circle cx="80" cy="48" r="7" fill="#FEBC2E"/><circle cx="102" cy="48" r="7" fill="#28C840"/>
+    <text x="128" y="53" font-size="14" font-weight="600" fill="#1f2328">kitchen-sink.md</text>
+    <g transform="translate(540 34)">
+      <rect width="120" height="28" rx="8" fill="#E7E5E1"/>
+      <rect x="41" y="2" width="38" height="24" rx="6" fill="#fff"/>
+      <g fill="none" stroke="#3c3f45" stroke-width="1.6">
+        <rect x="13" y="8" width="13" height="12" rx="2"/><path d="M16 12h7M16 15h5"/>
+        <rect x="53" y="8" width="14" height="12" rx="2"/><path d="M60 8v12"/>
+        <path d="M93 14c3-4 11-4 14 0c-3 4-11 4-14 0z"/><circle cx="100" cy="14" r="1.8"/>
+      </g>
+    </g>
+    <rect x="30" y="75" width="1140" height="1" fill="#E3E1DD"/>
+
+    <!-- editor pane: plain monospaced markdown (syntax colouring arrives in v0.3) -->
+    <g font-family="ui-monospace, Menlo, Monaco, monospace" font-size="15" fill="#2b2d33" xml:space="preserve">
+      <text x="62" y="128"># Kitchen Sink</text>
+      <text x="62" y="176">Plain, *emphasis*, **strong**,</text>
+      <text x="62" y="200">~~strike~~ and `code`.</text>
+      <text x="62" y="248">- [x] Ship the native preview</text>
+      <text x="62" y="272">- [ ] Mermaid diagrams</text>
+      <text x="62" y="320">| Left | Center | Right |</text>
+      <text x="62" y="344">|:-----|:------:|------:|</text>
+      <text x="62" y="368">| a    | b      | c     |</text>
+      <text x="62" y="416">```swift</text>
+      <text x="62" y="440">let dose = "MDSyndrome"</text>
+      <text x="62" y="464">```</text>
+      <text x="62" y="512">Area: $\pi r^2$, with a note[^1].</text>
+      <text x="62" y="560">[^1]: No Rosetta was harmed.</text>
+      <rect x="315" y="547" width="2" height="18" fill="#FF5E4D"/>
+    </g>
+
+    <!-- split divider -->
+    <rect x="599" y="76" width="1" height="586" fill="#E3E1DD"/>
+
+    <!-- preview pane: what PreviewKit renders today -->
+    <g fill="#1f2328">
+      <text x="632" y="134" font-size="30" font-weight="650">Kitchen Sink</text>
+      <rect x="632" y="148" width="506" height="1" fill="#d1d9e0"/>
+      <text x="632" y="186" font-size="16">Plain, <tspan font-style="italic">emphasis</tspan>, <tspan font-weight="700">strong</tspan>, <tspan text-decoration="line-through">strike</tspan> and</text>
+      <rect x="886" y="170" width="44" height="22" rx="4" fill="#818b981f"/>
+      <text x="891" y="186" font-size="14" font-family="ui-monospace, Menlo, monospace">code</text>
+      <text x="932" y="186" font-size="16">.</text>
+
+      <rect x="634" y="236" width="15" height="15" rx="3" fill="#0969da"/><path d="M637.5 243.5l3 3 5.5-6" fill="none" stroke="#fff" stroke-width="2"/>
+      <text x="660" y="249" font-size="16">Ship the native preview</text>
+      <rect x="634.75" y="262.75" width="13.5" height="13.5" rx="3" fill="none" stroke="#59636e" stroke-width="1.5"/>
+      <text x="660" y="275" font-size="16">Mermaid diagrams</text>
+
+      <g font-size="15">
+        <rect x="632" y="298" width="300" height="52" fill="none" stroke="#d1d9e0"/>
+        <path d="M632 324h300M728 298v52M836 298v52" stroke="#d1d9e0"/>
+        <text x="644" y="316" font-weight="600">Left</text><text x="782" y="316" font-weight="600" text-anchor="middle">Center</text><text x="924" y="316" font-weight="600" text-anchor="end">Right</text>
+        <text x="644" y="342">a</text><text x="782" y="342" text-anchor="middle">b</text><text x="924" y="342" text-anchor="end">c</text>
+      </g>
+
+      <rect x="632" y="398" width="506" height="86" rx="6" fill="#818b981f"/>
+      <text x="646" y="420" font-size="12" fill="#59636e">swift</text>
+      <g fill="none" stroke="#59636e" stroke-width="1.4"><rect x="1112" y="408" width="10" height="12" rx="2"/><path d="M1109 417v-11h8"/></g>
+      <text x="646" y="460" font-size="14" font-family="ui-monospace, Menlo, monospace">let dose = "MDSyndrome"</text>
+
+      <text x="632" y="524" font-size="16">Area: <tspan font-family="ui-monospace, Menlo, monospace" font-size="14" fill="#59636e">\pi r^2</tspan>, with a note<tspan font-size="11" dy="-7" fill="#0969da">1</tspan><tspan dy="7">.</tspan></text>
+      <rect x="632" y="560" width="506" height="1" fill="#d1d9e0"/>
+      <text x="632" y="590" font-size="14" fill="#59636e">1.</text>
+      <text x="654" y="590" font-size="14">No Rosetta was harmed.</text>
+    </g>
+
+    <!-- status bar -->
+    <rect x="30" y="662" width="1140" height="1" fill="#E3E1DD"/>
+    <rect x="30" y="663" width="1140" height="27" fill="#F6F5F3"/>
+    <text x="50" y="681" font-size="12" fill="#6e7074" xml:space="preserve">34 words   ·   305 characters   ·   19 lines   ·   1 min read</text>
+  </g>
+</svg>
