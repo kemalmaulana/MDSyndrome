@@ -6,6 +6,7 @@ let package = Package(
     platforms: [.macOS(.v26)],
     products: [
         .library(name: "MarkdownCore", targets: ["MarkdownCore"]),
+        .library(name: "PreviewKit", targets: ["PreviewKit"]),
     ],
     dependencies: [
         // gfm branch, pinned to an exact commit so app and package builds are reproducible.
@@ -17,5 +18,7 @@ let package = Package(
             .product(name: "cmark-gfm-extensions", package: "swift-cmark"),
         ]),
         .testTarget(name: "MarkdownCoreTests", dependencies: ["MarkdownCore"]),
+        .target(name: "PreviewKit", dependencies: ["MarkdownCore"]),
+        .testTarget(name: "PreviewKitTests", dependencies: ["PreviewKit"]),
     ]
 )
