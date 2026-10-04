@@ -107,18 +107,18 @@ import Testing
     /// Was quadratic: 100 KB of unmatched `<b>` took 31.7 s (release).
     @Test func manyUnmatchedInlineTags() async {
         let elapsed = await parseTime(String(repeating: "<b>x ", count: 20_000))
-        #expect(elapsed < .seconds(3), "measured \(elapsed)")
+        #expect(elapsed < .budget(3), "measured \(elapsed)")
     }
 
     /// Was quadratic: 136 KB of unclosed `<details>` took 20.9 s (release).
     @Test func manyUnclosedDetails() async {
         let elapsed = await parseTime(String(repeating: "<details>\n\n", count: 12_000))
-        #expect(elapsed < .seconds(3), "measured \(elapsed)")
+        #expect(elapsed < .budget(3), "measured \(elapsed)")
     }
 
     /// Was quadratic: an HTML block of 20k unclosed attribute quotes took 126 s (debug).
     @Test func manyUnclosedAttributeQuotes() async {
         let elapsed = await parseTime("<div>" + String(repeating: "<a title='x>", count: 20_000) + "</div>")
-        #expect(elapsed < .seconds(3), "measured \(elapsed)")
+        #expect(elapsed < .budget(3), "measured \(elapsed)")
     }
 }

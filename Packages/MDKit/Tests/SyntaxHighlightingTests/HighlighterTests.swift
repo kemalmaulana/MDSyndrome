@@ -115,7 +115,7 @@ private func colored(_ code: String, _ language: String) -> [String] {
     @Test func largeInputIsLinear() {
         let code = String(repeating: "let value = \"text\" + 42 // comment\n", count: 30_000)   // ~1 MB
         let elapsed = ContinuousClock().measure { _ = Highlighter.highlight(code, language: "swift") }
-        #expect(elapsed < .seconds(3), "measured \(elapsed)")
+        #expect(elapsed < .budget(3), "measured \(elapsed)")
     }
 }
 
@@ -124,14 +124,14 @@ private func colored(_ code: String, _ language: String) -> [String] {
     @Test func longSameKindRunIsLinear() {
         let code = String(repeating: "abc def ghi + - * / ", count: 50_000)   // ~1 MB of plain tokens
         let elapsed = ContinuousClock().measure { _ = Highlighter.highlight(code, language: "swift") }
-        #expect(elapsed < .seconds(3), "measured \(elapsed)")
+        #expect(elapsed < .budget(3), "measured \(elapsed)")
         #expect(Highlighter.highlight(code, language: "swift").map(\.text).joined() == code)
     }
 
     @Test func manyUnclosedShellBracesAreLinear() {
         let code = String(repeating: "${", count: 50_000)
         let elapsed = ContinuousClock().measure { _ = Highlighter.highlight(code, language: "sh") }
-        #expect(elapsed < .seconds(3), "measured \(elapsed)")
+        #expect(elapsed < .budget(3), "measured \(elapsed)")
     }
 
     @Test func shellBraceStopsAtLineEnd() {
