@@ -45,6 +45,20 @@ import Testing
         #expect(session.renderCount == 1)
     }
 
+    @Test func slowInitialRenderNeverOverwritesALaterEdit() async throws {
+        let session = DocumentSession(debounce: .milliseconds(20)) { text, options in
+            if text == "initial" { Thread.sleep(forTimeInterval: 0.3) }
+            return MarkdownPipeline.render(text, options: options)
+        }
+        async let initial: Void = session.renderNow("initial")
+        try await Task.sleep(for: .milliseconds(50))   // the slow first render is in flight
+        session.textDidChange("typed")
+        try await Task.sleep(for: .milliseconds(200))
+        await initial
+        #expect(session.rendered.document.blocks.first?.kind == .paragraph([.text("typed")]))
+        #expect(session.renderCount == 1)
+    }
+
     @Test func optionsArePassedToRenderer() async {
         var options = MarkdownOptions()
         options.math = false

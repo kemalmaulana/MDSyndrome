@@ -63,4 +63,24 @@ import Testing
         coordinator.apply(bigger)
         #expect((textView.textStorage?.attribute(.font, at: 0, effectiveRange: nil) as? NSFont)?.pointSize == 20)
     }
+
+    @Test func hidingTheEditorResignsFocusAndShowingRestoresIt() throws {
+        _ = NSApplication.shared
+        let box = Box("text")
+        let coordinator = EditorCoordinator(text: Binding(get: { box.value }, set: { box.value = $0 }))
+        let scrollView = NSTextView.scrollableTextView()
+        let textView = try #require(scrollView.documentView as? NSTextView)
+        coordinator.attach(to: textView, configuration: .macDownDefaults)
+        let window = NSWindow(contentRect: NSRect(x: 0, y: 0, width: 400, height: 300), styleMask: [.titled], backing: .buffered, defer: false)
+        window.contentView = scrollView
+        #expect(window.makeFirstResponder(textView))
+
+        coordinator.setHidden(true, scrollView: scrollView)
+        #expect(scrollView.isHidden)
+        #expect(window.firstResponder !== textView, "a hidden editor must not receive keystrokes")
+
+        coordinator.setHidden(false, scrollView: scrollView)
+        #expect(!scrollView.isHidden)
+        #expect(window.firstResponder === textView)
+    }
 }

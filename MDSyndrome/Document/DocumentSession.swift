@@ -16,6 +16,9 @@ final class DocumentSession {
     @ObservationIgnored private let debounce: Duration
     @ObservationIgnored private let renderer: Renderer
     @ObservationIgnored private var pending: Task<Void, Never>?
+    /// Bumped on every render request; a finished render is published only if it is still the latest.
+    /// This also covers `renderNow`, whose task is not the cancellable `pending` one.
+    @ObservationIgnored private var generation = 0
 
     init(
         options: MarkdownOptions = .default,
@@ -30,24 +33,27 @@ final class DocumentSession {
     /// Call on every edit. Only the last edit inside the debounce window is rendered.
     func textDidChange(_ text: String) {
         pending?.cancel()
+        generation += 1
+        let request = generation
         pending = Task { [debounce] in
             try? await Task.sleep(for: debounce)
             guard !Task.isCancelled else { return }
-            await self.render(text)
+            await self.render(text, request: request)
         }
     }
 
     /// Renders now, cancelling any pending debounced render (initial load, tests).
     func renderNow(_ text: String) async {
         pending?.cancel()
-        await render(text)
+        generation += 1
+        await render(text, request: generation)
     }
 
-    private func render(_ text: String) async {
+    private func render(_ text: String, request: Int) async {
         let renderer = renderer
         let options = options
         let result = await Task.detached(priority: .userInitiated) { renderer(text, options) }.value
-        guard !Task.isCancelled else { return }
+        guard request == generation else { return }
         rendered = result
         renderCount += 1
     }

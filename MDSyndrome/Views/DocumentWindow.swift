@@ -14,7 +14,7 @@ struct DocumentWindow: View {
     var body: some View {
         VStack(spacing: 0) {
             PaneLayout(mode: layoutMode, ratio: $splitRatio) {
-                MarkdownEditorView(text: $document.text)
+                MarkdownEditorView(text: $document.text, isHidden: layoutMode == .preview)
             } preview: {
                 MarkdownPreview(rendered: session.rendered, baseURL: fileURL?.deletingLastPathComponent())
             }

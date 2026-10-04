@@ -21,7 +21,7 @@ public struct DocumentStats: Hashable, Sendable {
         DocumentStats(
             words: document.blocks.reduce(0) { $0 + wordCount($1) },
             characters: source.count,
-            lines: source.isEmpty ? 0 : source.reduce(1) { $1 == "\n" ? $0 + 1 : $0 }
+            lines: source.isEmpty ? 0 : source.normalizedLineEndings.utf8.reduce(1) { $1 == UInt8(ascii: "\n") ? $0 + 1 : $0 }
         )
     }
 

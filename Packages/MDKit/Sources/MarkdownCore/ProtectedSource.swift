@@ -18,6 +18,9 @@ public struct ProtectedSource: Sendable {
     static let open: Character = "\u{E000}"
     static let close: Character = "\u{E001}"
 
+    /// Longest digit run a placeholder can contain (Int.max has 19 digits).
+    static let maxIndexDigits = 19
+
     static func placeholder(_ index: Int) -> String {
         "\(open)\(index)\(close)"
     }
@@ -47,8 +50,10 @@ public struct ProtectedSource: Sendable {
         var i = literal.startIndex
         while i < literal.endIndex {
             let c = literal[i]
+            // Look for the closing mark only within a placeholder's length, so text full of U+E000
+            // characters stays linear instead of rescanning to the end for each one.
             if c == Self.open,
-               let close = literal[i...].firstIndex(of: Self.close),
+               let close = literal[literal.index(after: i)...].prefix(Self.maxIndexDigits + 1).firstIndex(of: Self.close),
                let index = Int(literal[literal.index(after: i)..<close]),
                spans.indices.contains(index) {
                 math(spans[index])

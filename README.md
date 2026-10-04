@@ -10,8 +10,8 @@
 </p>
 
 <p align="center">
-  <a href="https://github.com/kemalmaulana/mdsyndrome/actions/workflows/ci.yml"><img alt="CI" src="https://github.com/kemalmaulana/mdsyndrome/actions/workflows/ci.yml/badge.svg"></a>
-  <a href="https://github.com/kemalmaulana/mdsyndrome/releases"><img alt="Latest release" src="https://img.shields.io/github/v/release/kemalmaulana/mdsyndrome?include_prereleases&label=release&color=FF5E4D"></a>
+  <a href="https://github.com/kemalmaulana/MDSyndrome/actions/workflows/ci.yml"><img alt="CI" src="https://github.com/kemalmaulana/MDSyndrome/actions/workflows/ci.yml/badge.svg"></a>
+  <a href="https://github.com/kemalmaulana/MDSyndrome/releases"><img alt="Latest release" src="https://img.shields.io/github/v/release/kemalmaulana/MDSyndrome?include_prereleases&label=release&color=FF5E4D"></a>
   <img alt="macOS 26+" src="https://img.shields.io/badge/macOS-26%2B-17181C?logo=apple&logoColor=white">
   <img alt="Swift 6" src="https://img.shields.io/badge/Swift-6-FF5E4D?logo=swift&logoColor=white">
   <img alt="Universal binary" src="https://img.shields.io/badge/binary-universal-17181C">
@@ -62,7 +62,7 @@ It runs natively on Apple Silicon, has no Electron, and renders its preview nati
 
 ## 📦 Dosage (install)
 
-1. Download **`MDSyndrome-<version>.dmg`** from [Releases](https://github.com/kemalmaulana/mdsyndrome/releases).
+1. Download **`MDSyndrome-<version>.dmg`** from [Releases](https://github.com/kemalmaulana/MDSyndrome/releases).
 2. Drag **MDSyndrome** into **Applications**.
 3. **First launch:** builds without a Developer ID are *ad-hoc signed*, so macOS will hesitate. Do one of these:
    - right-click the app → **Open** → **Open**, or
@@ -79,7 +79,7 @@ Check your download: `shasum -a 256 -c SHA256SUMS.txt` (the checksum file is att
 You need macOS 26+, Xcode 26+ and [XcodeGen](https://github.com/yonaskolb/XcodeGen) (`brew install xcodegen`).
 
 ```bash
-git clone https://github.com/kemalmaulana/mdsyndrome.git && cd mdsyndrome
+git clone https://github.com/kemalmaulana/MDSyndrome.git && cd MDSyndrome
 make run
 ```
 

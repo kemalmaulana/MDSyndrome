@@ -64,4 +64,15 @@ final class EditingFlowUITests: XCTestCase {
         // (On macOS 26+ the window title does not show "Edited", so check the sheet.)
         XCTAssertTrue(app.sheets.firstMatch.waitForExistence(timeout: 5), "closing an edited document shows a save/keep sheet")
     }
+
+    @MainActor
+    func testTypingInPreviewModeDoesNotEditTheHiddenEditor() throws {
+        XCTAssertTrue(editor.waitForExistence(timeout: 10))
+        editor.click()
+        editor.typeText("keep")
+        app.typeKey("3", modifierFlags: [.command, .option])   // preview only: editor hidden
+        app.typeText("xyz ")
+        app.typeKey("2", modifierFlags: [.command, .option])   // back to split
+        XCTAssertEqual(editor.value as? String, "keep", "keystrokes in Preview mode must not reach the hidden editor")
+    }
 }

@@ -9,6 +9,8 @@ public enum MarkdownParser {
 
     public static func parse(_ text: String, options: MarkdownOptions = .default) -> MarkdownDocument {
         _ = registerExtensions
+        // Line numbers from cmark count \r\n, \r and \n alike; normalise so our own line splitting agrees.
+        let text = text.normalizedLineEndings
         let protected = options.math
             ? MathExtractor.protect(text, singleDollar: options.singleDollarMath)
             : ProtectedSource(text: text, spans: [])
@@ -115,7 +117,7 @@ struct NodeConverter {
             // cmark-gfm appends referenced definitions to the end of the
             // document in reference order, so position == reference index.
             footnoteCount += 1
-            return .footnoteDefinition(index: footnoteCount, label: string(cmark_node_get_literal(node)), blocks: blocks(under: node, depth: depth + 1))
+            return .footnoteDefinition(index: footnoteCount, label: math.restore(string(cmark_node_get_literal(node))), blocks: blocks(under: node, depth: depth + 1))
         default:
             if typeString(node) == "table" { return .table(table(node)) }
             return nil
@@ -174,21 +176,24 @@ struct NodeConverter {
         return TableBlock(alignments: alignments, header: header, rows: rows)
     }
 
-    private func inlines(under parent: CMarkNode, depth: Int) -> [Inline] {
+    /// `literalMath`: inside a link whose URL contained `$…$` (e.g. `?$filter=a&$top=10`), the "math"
+    /// was really part of the URL, so placeholders are restored to their original text.
+    private func inlines(under parent: CMarkNode, depth: Int, literalMath: Bool = false) -> [Inline] {
         if depth >= Self.maxDepth { return [.text(flattenedText(parent))] }
         var result: [Inline] = []
         var child = cmark_node_first_child(parent)
         while let node = child {
-            result.append(contentsOf: inline(node, depth: depth))
+            result.append(contentsOf: inline(node, depth: depth, literalMath: literalMath))
             child = cmark_node_next(node)
         }
         return result.mergingAdjacentText()
     }
 
-    private func inline(_ node: CMarkNode, depth: Int) -> [Inline] {
+    private func inline(_ node: CMarkNode, depth: Int, literalMath: Bool) -> [Inline] {
         switch cmark_node_get_type(node) {
         case CMARK_NODE_TEXT:
-            return math.inlines(from: string(cmark_node_get_literal(node)))
+            let literal = string(cmark_node_get_literal(node))
+            return literalMath ? [.text(math.restore(literal))] : math.inlines(from: literal)
         case CMARK_NODE_SOFTBREAK:
             return [hardBreaks ? .lineBreak : .softBreak]
         case CMARK_NODE_LINEBREAK:
@@ -198,18 +203,24 @@ struct NodeConverter {
         case CMARK_NODE_HTML_INLINE:
             return [.html(math.restore(string(cmark_node_get_literal(node))))]
         case CMARK_NODE_EMPH:
-            return [.emphasis(inlines(under: node, depth: depth + 1))]
+            return [.emphasis(inlines(under: node, depth: depth + 1, literalMath: literalMath))]
         case CMARK_NODE_STRONG:
-            return [.strong(inlines(under: node, depth: depth + 1))]
+            return [.strong(inlines(under: node, depth: depth + 1, literalMath: literalMath))]
         case CMARK_NODE_LINK:
-            return [.link(destination: string(cmark_node_get_url(node)), title: nonEmpty(cmark_node_get_title(node)), content: inlines(under: node, depth: depth + 1))]
+            let url = string(cmark_node_get_url(node))
+            let urlHadMath = url.contains(ProtectedSource.open)
+            return [.link(destination: math.restore(url), title: nonEmpty(cmark_node_get_title(node)).map(math.restore),
+                          content: inlines(under: node, depth: depth + 1, literalMath: literalMath || urlHadMath))]
         case CMARK_NODE_IMAGE:
-            return [.image(source: string(cmark_node_get_url(node)), title: nonEmpty(cmark_node_get_title(node)), alt: Inline.plainText(inlines(under: node, depth: depth + 1)))]
+            let url = string(cmark_node_get_url(node))
+            let urlHadMath = url.contains(ProtectedSource.open)
+            return [.image(source: math.restore(url), title: nonEmpty(cmark_node_get_title(node)).map(math.restore),
+                           alt: Inline.plainText(inlines(under: node, depth: depth + 1, literalMath: literalMath || urlHadMath)))]
         case CMARK_NODE_FOOTNOTE_REFERENCE:
             return [.footnoteReference(index: Int(string(cmark_node_get_literal(node))) ?? 0)]
         default:
-            if typeString(node) == "strikethrough" { return [.strikethrough(inlines(under: node, depth: depth + 1))] }
-            return inlines(under: node, depth: depth + 1)
+            if typeString(node) == "strikethrough" { return [.strikethrough(inlines(under: node, depth: depth + 1, literalMath: literalMath))] }
+            return inlines(under: node, depth: depth + 1, literalMath: literalMath)
         }
     }
 
@@ -302,6 +313,7 @@ extension Array where Element == Inline {
     func mergingAdjacentText() -> [Inline] {
         var result: [Inline] = []
         for inline in self {
+            if case .text("") = inline { continue }   // cmark leaves empty text nodes around autolinks
             if case .text(let next) = inline, case .text(let previous)? = result.last {
                 result[result.count - 1] = .text(previous + next)
             } else {

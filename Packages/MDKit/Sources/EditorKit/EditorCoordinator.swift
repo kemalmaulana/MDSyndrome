@@ -54,6 +54,20 @@ public final class EditorCoordinator: NSObject, NSTextViewDelegate {
         textView.setSelectedRange(NSRange(location: min(selection.location, length), length: 0))
     }
 
+    /// Hides the editor without destroying it. A zero-width or transparent NSTextView still receives
+    /// keystrokes, so typing in Preview-only mode would silently edit (and autosave) the document.
+    /// Hiding resigns focus; showing again hands focus back so the user can type straight away.
+    public func setHidden(_ hidden: Bool, scrollView: NSScrollView) {
+        guard scrollView.isHidden != hidden else { return }
+        scrollView.isHidden = hidden
+        guard let textView, let window = textView.window else { return }
+        if hidden {
+            if window.firstResponder === textView { window.makeFirstResponder(nil) }
+        } else {
+            window.makeFirstResponder(textView)
+        }
+    }
+
     public func textDidChange(_ notification: Notification) {
         guard !isApplyingExternalText, let textView = notification.object as? NSTextView else { return }
         // NSTextView already registered a coalesced "Typing" undo action. A

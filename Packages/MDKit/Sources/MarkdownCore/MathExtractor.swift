@@ -80,6 +80,11 @@ public enum MathExtractor {
         guard chars.contains("$") else { return line }
         var out = ""
         var i = 0
+        // Once a closer search fails, every later opener on this line would scan the same (shorter)
+        // tail and fail too. Remembering that keeps the pass linear on hostile input like "$a $a $a …".
+        var inlineCloserExhausted = false
+        var displayCloserExhausted = false
+        var unmatchedBacktickRuns: Set<Int> = []
         while i < chars.count {
             let c = chars[i]
             if c == "\\", i + 1 < chars.count {
@@ -88,24 +93,35 @@ public enum MathExtractor {
             }
             if c == "`" {
                 let run = countRun(chars, from: i, of: "`")
-                if let end = findClosingBackticks(chars, from: i + run, run: run) {
+                if !unmatchedBacktickRuns.contains(run), let end = findClosingBackticks(chars, from: i + run, run: run) {
                     out += String(chars[i..<(end + run)])
                     i = end + run
                 } else {
+                    unmatchedBacktickRuns.insert(run)
                     out += String(chars[i..<(i + run)])
                     i += run
                 }
                 continue
             }
-            if c == "$", i + 1 < chars.count, chars[i + 1] == "$",
-               let end = findDisplayClose(chars, from: i + 2) {
+            if c == "$", i + 1 < chars.count, chars[i + 1] == "$", !displayCloserExhausted {
+                guard let end = findDisplayClose(chars, from: i + 2) else {
+                    displayCloserExhausted = true
+                    continue
+                }
                 let latex = String(chars[(i + 2)..<end]).trimmingCharacters(in: .whitespaces)
                 spans.append(.init(latex: latex, display: true, original: String(chars[i..<(end + 2)])))
                 out += ProtectedSource.placeholder(spans.count - 1)
                 i = end + 2
                 continue
             }
-            if c == "$", singleDollar, let end = findInlineClose(chars, from: i) {
+            if c == "$", singleDollar, !inlineCloserExhausted,
+               i + 1 < chars.count, !chars[i + 1].isWhitespace, chars[i + 1] != "$" {
+                guard let end = findInlineClose(chars, from: i) else {
+                    inlineCloserExhausted = true
+                    out.append(c)
+                    i += 1
+                    continue
+                }
                 spans.append(.init(latex: String(chars[(i + 1)..<end]), display: false, original: String(chars[i...end])))
                 out += ProtectedSource.placeholder(spans.count - 1)
                 i = end + 1

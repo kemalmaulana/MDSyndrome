@@ -5,10 +5,14 @@ import SwiftUI
 public struct MarkdownEditorView: NSViewRepresentable {
     @Binding private var text: String
     private let configuration: EditorConfiguration
+    private let isHidden: Bool
 
-    public init(text: Binding<String>, configuration: EditorConfiguration = .macDownDefaults) {
+    /// - Parameter isHidden: set when the layout hides the editor (Preview-only mode). The view stays
+    ///   alive so undo, selection and scroll survive, but it must give up keyboard focus.
+    public init(text: Binding<String>, configuration: EditorConfiguration = .macDownDefaults, isHidden: Bool = false) {
         _text = text
         self.configuration = configuration
+        self.isHidden = isHidden
     }
 
     public func makeCoordinator() -> EditorCoordinator {
@@ -20,6 +24,7 @@ public struct MarkdownEditorView: NSViewRepresentable {
         guard let textView = scrollView.documentView as? NSTextView else { return scrollView }
         context.coordinator.attach(to: textView, configuration: configuration)
         context.coordinator.setText(text)
+        scrollView.isHidden = isHidden
         return scrollView
     }
 
@@ -27,5 +32,6 @@ public struct MarkdownEditorView: NSViewRepresentable {
         context.coordinator.text = $text
         context.coordinator.apply(configuration)
         context.coordinator.setText(text)
+        context.coordinator.setHidden(isHidden, scrollView: scrollView)
     }
 }

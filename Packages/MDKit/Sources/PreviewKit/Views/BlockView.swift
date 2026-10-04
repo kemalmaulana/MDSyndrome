@@ -61,6 +61,8 @@ struct ParagraphView: View {
     var body: some View {
         if case .image(let source, _, let alt)? = content.onlyNonWhitespace {
             ImageBlockView(source: source, alt: alt)
+        } else if let images = content.imageRow {
+            ImageRowView(images: images)
         } else {
             Text(InlineRenderer.attributedString(content, theme: theme))
                 .lineSpacing(theme.lineSpacing)
