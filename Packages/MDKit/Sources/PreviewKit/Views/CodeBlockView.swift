@@ -1,5 +1,6 @@
 import AppKit
 import SwiftUI
+import SyntaxHighlighting
 
 struct CodeBlockView: View {
     let language: String?
@@ -11,6 +12,11 @@ struct CodeBlockView: View {
             HStack {
                 if let language {
                     Text(language).font(.caption).foregroundStyle(theme.secondaryText.color)
+                }
+                if isDiagram {
+                    Text("Diagram preview arrives in a later version")
+                        .font(.caption2)
+                        .foregroundStyle(theme.secondaryText.color)
                 }
                 Spacer()
                 Button {
@@ -26,7 +32,7 @@ struct CodeBlockView: View {
             .padding(.horizontal, 12)
             .padding(.top, 8)
             ScrollView(.horizontal) {
-                Text(code)
+                Text(SyntaxStyler.attributed(code, language: language, theme: theme))
                     .font(.system(size: theme.codeFontSize, design: .monospaced))
                     .textSelection(.enabled)
                     .fixedSize()
@@ -34,5 +40,10 @@ struct CodeBlockView: View {
             }
         }
         .background(theme.codeBackground.color, in: RoundedRectangle(cornerRadius: 6))
+    }
+
+    /// Mermaid / Graphviz fences render as diagrams once WebRenderKit lands (Plan 3).
+    private var isDiagram: Bool {
+        ["mermaid", "dot", "graphviz"].contains(language?.lowercased() ?? "")
     }
 }

@@ -8,6 +8,8 @@ struct RowImage: Hashable {
     let alt: String
     /// Destination when the image is wrapped in a link.
     let link: String?
+    /// From HTML `<img width>`.
+    var width: Double? = nil
 }
 
 extension Array where Element == Inline {
@@ -21,11 +23,11 @@ extension Array where Element == Inline {
                 continue
             case .softBreak, .lineBreak:
                 continue
-            case .image(let source, _, let alt):
-                images.append(RowImage(source: source, alt: alt, link: nil))
+            case .image(let source, _, let alt, let width):
+                images.append(RowImage(source: source, alt: alt, link: nil, width: width))
             case .link(let destination, _, let content):
-                guard case .image(let source, _, let alt)? = content.onlyNonWhitespace else { return nil }
-                images.append(RowImage(source: source, alt: alt, link: destination))
+                guard case .image(let source, _, let alt, let width)? = content.onlyNonWhitespace else { return nil }
+                images.append(RowImage(source: source, alt: alt, link: destination, width: width))
             default:
                 return nil
             }
@@ -36,18 +38,19 @@ extension Array where Element == Inline {
 
 struct ImageRowView: View {
     let images: [RowImage]
+    @Environment(\.blockAlignment) private var alignment
 
     var body: some View {
-        FlowLayout(spacing: 6) {
+        FlowLayout(spacing: 6, alignment: alignment) {
             ForEach(Array(images.enumerated()), id: \.offset) { _, image in
                 if let link = image.link, let url = URL(string: link) {
                     // Link goes through the environment's OpenURLAction, i.e. LinkPolicy.
                     Link(destination: url) {
-                        ImageBlockView(source: image.source, alt: image.alt)
+                        ImageBlockView(source: image.source, alt: image.alt, width: image.width)
                     }
                     .help(link)
                 } else {
-                    ImageBlockView(source: image.source, alt: image.alt)
+                    ImageBlockView(source: image.source, alt: image.alt, width: image.width)
                 }
             }
         }
@@ -55,8 +58,10 @@ struct ImageRowView: View {
 }
 
 /// Left-to-right layout that wraps to a new row when the next item doesn't fit.
+/// Rows are aligned leading, centred or trailing within the available width.
 struct FlowLayout: Layout {
     var spacing: CGFloat = 6
+    var alignment: BlockAlignment = .leading
 
     private struct Row {
         var items: [(index: Int, size: CGSize)] = []
@@ -69,13 +74,16 @@ struct FlowLayout: Layout {
         let width: CGFloat = rows.map { (row: Row) in row.width }.max() ?? 0
         let rowHeights: CGFloat = rows.reduce(0) { (sum: CGFloat, row: Row) in sum + row.height }
         let gaps: CGFloat = spacing * CGFloat(max(rows.count - 1, 0))
-        return CGSize(width: width, height: rowHeights + gaps)
+        // Centred or trailing rows need the full width to align within.
+        let fullWidth: CGFloat = alignment == .leading ? width : (proposal.width ?? width)
+        return CGSize(width: fullWidth, height: rowHeights + gaps)
     }
 
     func placeSubviews(in bounds: CGRect, proposal: ProposedViewSize, subviews: Subviews, cache: inout ()) {
         var y = bounds.minY
         for row in arrange(width: bounds.width, subviews: subviews) {
-            var x = bounds.minX
+            let slack = max(bounds.width - row.width, 0)
+            var x = bounds.minX + (alignment == .center ? slack / 2 : alignment == .trailing ? slack : 0)
             for item in row.items {
                 subviews[item.index].place(
                     at: CGPoint(x: x, y: y + (row.height - item.size.height) / 2),

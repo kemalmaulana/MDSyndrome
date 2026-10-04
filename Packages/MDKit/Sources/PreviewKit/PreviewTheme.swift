@@ -1,5 +1,7 @@
 import AppKit
+import MarkdownCore
 import SwiftUI
+import SyntaxHighlighting
 
 /// A color with light and dark variants, stored as hex so themes can be JSON files.
 public struct ThemeColor: Codable, Hashable, Sendable {
@@ -57,6 +59,11 @@ public struct PreviewTheme: Codable, Hashable, Sendable {
     public var border: ThemeColor
     public var blockQuoteBar: ThemeColor
     public var tableStripe: ThemeColor
+    /// `==marked==` / `<mark>` background.
+    public var highlightBackground: ThemeColor
+    /// LaTeX that could not be typeset, and similar inline errors.
+    public var error: ThemeColor
+    public var syntax: SyntaxPalette
 
     public func headingSize(level: Int) -> Double {
         bodyFontSize * headingScales[min(max(level, 1), headingScales.count) - 1]
@@ -79,7 +86,55 @@ public struct PreviewTheme: Codable, Hashable, Sendable {
         codeBackground: ThemeColor(light: "#818b981f", dark: "#656c7633"),
         border: ThemeColor(light: "#d1d9e0", dark: "#3d444d"),
         blockQuoteBar: ThemeColor(light: "#d1d9e0", dark: "#3d444d"),
-        tableStripe: ThemeColor(light: "#f6f8fa", dark: "#151b23")
+        tableStripe: ThemeColor(light: "#f6f8fa", dark: "#151b23"),
+        highlightBackground: ThemeColor(light: "#fff8c5", dark: "#bb800926"),
+        error: ThemeColor(light: "#d1242f", dark: "#f85149"),
+        syntax: .github
+    )
+}
+
+/// Code-block colours per token kind (light + dark), GitHub Primer palette by default.
+public struct SyntaxPalette: Codable, Hashable, Sendable {
+    public var keyword: ThemeColor
+    public var type: ThemeColor
+    public var literal: ThemeColor
+    public var string: ThemeColor
+    public var number: ThemeColor
+    public var comment: ThemeColor
+    public var attribute: ThemeColor
+    public var tag: ThemeColor
+    public var inserted: ThemeColor
+    public var deleted: ThemeColor
+    public var meta: ThemeColor
+
+    public func color(for kind: TokenKind) -> ThemeColor {
+        switch kind {
+        case .keyword: keyword
+        case .type: type
+        case .literal: literal
+        case .string: string
+        case .number: number
+        case .comment: comment
+        case .attribute: attribute
+        case .tag: tag
+        case .inserted: inserted
+        case .deleted: deleted
+        case .meta: meta
+        }
+    }
+
+    public static let github = SyntaxPalette(
+        keyword: ThemeColor(light: "#cf222e", dark: "#ff7b72"),
+        type: ThemeColor(light: "#953800", dark: "#ffa657"),
+        literal: ThemeColor(light: "#0550ae", dark: "#79c0ff"),
+        string: ThemeColor(light: "#0a3069", dark: "#a5d6ff"),
+        number: ThemeColor(light: "#0550ae", dark: "#79c0ff"),
+        comment: ThemeColor(light: "#59636e", dark: "#9198a1"),
+        attribute: ThemeColor(light: "#8250df", dark: "#d2a8ff"),
+        tag: ThemeColor(light: "#116329", dark: "#7ee787"),
+        inserted: ThemeColor(light: "#116329", dark: "#3fb950"),
+        deleted: ThemeColor(light: "#82071e", dark: "#f85149"),
+        meta: ThemeColor(light: "#8250df", dark: "#d2a8ff")
     )
 }
 
@@ -88,4 +143,6 @@ extension EnvironmentValues {
     /// Folder of the open document; relative image paths resolve against it. nil for unsaved documents.
     @Entry public var documentBaseURL: URL? = nil
     @Entry var listDepth: Int = 0
+    /// Horizontal alignment of HTML-authored blocks (`<p align="center">`), read by image rows.
+    @Entry var blockAlignment: BlockAlignment = .leading
 }
