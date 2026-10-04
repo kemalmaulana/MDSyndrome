@@ -8,6 +8,7 @@ let package = Package(
         .library(name: "MarkdownCore", targets: ["MarkdownCore"]),
         .library(name: "PreviewKit", targets: ["PreviewKit"]),
         .library(name: "EditorKit", targets: ["EditorKit"]),
+        .library(name: "SyntaxHighlighting", targets: ["SyntaxHighlighting"]),
     ],
     dependencies: [
         // gfm branch, pinned to an exact commit so app and package builds are reproducible.
@@ -23,5 +24,6 @@ let package = Package(
         .testTarget(name: "PreviewKitTests", dependencies: ["PreviewKit"]),
         .target(name: "EditorKit"),
         .testTarget(name: "EditorKitTests", dependencies: ["EditorKit"]),
+        .target(name: "SyntaxHighlighting"),
     ]
 )
