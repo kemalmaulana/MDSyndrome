@@ -27,5 +27,6 @@ let package = Package(
         .target(name: "EditorKit"),
         .testTarget(name: "EditorKitTests", dependencies: ["EditorKit"]),
         .target(name: "SyntaxHighlighting"),
+        .testTarget(name: "SyntaxHighlightingTests", dependencies: ["SyntaxHighlighting"]),
     ]
 )
