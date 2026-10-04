@@ -53,7 +53,9 @@ jobs:
         run: brew install xcodegen
 
       - name: Test before shipping
-        run: make test
+        timeout-minutes: 15
+        # `script` gives the tests a pseudo-terminal so their output streams live instead of buffering.
+        run: script -q /dev/null make test
 
       - name: Import Developer ID certificate
         if: env.MACOS_CERTIFICATE_P12 != ''

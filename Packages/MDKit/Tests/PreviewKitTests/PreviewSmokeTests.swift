@@ -5,7 +5,7 @@ import Testing
 
 /// Renders every block kind once, to catch layout crashes (e.g. recursive views, empty tables).
 @MainActor
-@Suite struct PreviewSmokeTests {
+@Suite(.requiresWindowServer) struct PreviewSmokeTests {
     static let kitchenSink = """
     # Heading 1
     ## Heading 2

@@ -29,7 +29,7 @@ import Testing
 }
 
 @MainActor
-@Suite struct ImageRowRenderTests {
+@Suite(.requiresWindowServer) struct ImageRowRenderTests {
     @Test func badgeRowWrapsWithoutCrashing() throws {
         let md = (1...12).map { "[![b\($0)](missing-\($0).svg)](https://example.com/\($0))" }.joined(separator: " ")
         let rendered = MarkdownPipeline.render(md, options: .default)

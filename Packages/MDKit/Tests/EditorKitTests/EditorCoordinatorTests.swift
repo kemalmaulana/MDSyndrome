@@ -4,7 +4,7 @@ import Testing
 @testable import EditorKit
 
 @MainActor
-@Suite struct EditorCoordinatorTests {
+@Suite(.requiresWindowServer) struct EditorCoordinatorTests {
     /// Captures binding writes so tests can count them.
     final class Box {
         var value: String

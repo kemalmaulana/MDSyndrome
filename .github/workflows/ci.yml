@@ -41,7 +41,9 @@ jobs:
       # Lint (WebKit containment) + MDKit package tests + app unit tests.
       # UI tests are left to local runs: they need an interactive, focused desktop session.
       - name: make test
-        run: make test
+        timeout-minutes: 15
+        # `script` gives the tests a pseudo-terminal so their output streams live instead of buffering.
+        run: script -q /dev/null make test
 
       - name: Upload test results on failure
         if: failure()
