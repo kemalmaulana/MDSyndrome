@@ -7,8 +7,8 @@ struct StatusBar: View {
     var body: some View {
         HStack(spacing: 12) {
             Text(stats.words == 1 ? "1 word" : "\(stats.words) words")
-            Text("\(stats.characters) characters")
-            Text("\(stats.lines) lines")
+            Text(stats.characters == 1 ? "1 character" : "\(stats.characters) characters")
+            Text(stats.lines == 1 ? "1 line" : "\(stats.lines) lines")
             Text("\(stats.readingMinutes) min read")
             Spacer()
         }
