@@ -76,13 +76,19 @@ struct InlineFlowView: View {
         } else if let images = content.imageRow {
             ImageRowView(images: images)
                 .environment(\.blockAlignment, alignment)
-        } else if content.containsImage {
+        } else if content.containsImage, case let lines = content.splitAtLineBreaks(), lines.count > 1 {
+            // Several lines (image row, then a caption…): lay out each line on its own. Every line
+            // has no line breaks left, so this recursion is at most one level deep.
             VStack(alignment: alignment.horizontal, spacing: 6) {
-                ForEach(Array(content.splitAtLineBreaks().enumerated()), id: \.offset) { _, line in
+                ForEach(Array(lines.enumerated()), id: \.offset) { _, line in
                     InlineFlowView(content: line, alignment: alignment)
                 }
             }
             .frame(maxWidth: .infinity, alignment: alignment.frame)
+        } else if content.containsImage {
+            // One line mixing text and images ("Click the ![gear](g.png) icon"): flow words and images.
+            MixedInlineFlow(content: content)
+                .environment(\.blockAlignment, alignment)
         } else {
             InlineRenderer.text(content, theme: theme)
                 .lineSpacing(theme.lineSpacing)
@@ -91,6 +97,64 @@ struct InlineFlowView: View {
                 .fixedSize(horizontal: false, vertical: true)
                 .frame(maxWidth: .infinity, alignment: alignment.frame)
         }
+    }
+}
+
+/// Text and images on one line, wrapped together: each word is its own flow item so images sit
+/// inline. Styling survives (words are slices of the rendered AttributedString); inline math in such
+/// a line shows as source.
+struct MixedInlineFlow: View {
+    let content: [Inline]
+    @Environment(\.previewTheme) private var theme
+    @Environment(\.blockAlignment) private var alignment
+
+    private enum Item {
+        case word(AttributedString)
+        case image(RowImage)
+    }
+
+    var body: some View {
+        FlowLayout(spacing: 0, alignment: alignment) {
+            ForEach(Array(items.enumerated()), id: \.offset) { _, item in
+                switch item {
+                case .word(let word):
+                    Text(word).fixedSize()
+                case .image(let image):
+                    ImageRowView(images: [image]).padding(.horizontal, 2)
+                }
+            }
+        }
+    }
+
+    private var items: [Item] {
+        var items: [Item] = []
+        var pending: [Inline] = []
+        func flushText() {
+            guard !pending.isEmpty else { return }
+            let text = InlineRenderer.attributedString(pending, theme: theme)
+            var start = text.startIndex
+            var index = text.startIndex
+            while index < text.endIndex {
+                let isSpace = text.characters[index].isWhitespace
+                index = text.characters.index(after: index)
+                if isSpace {
+                    items.append(.word(AttributedString(text[start..<index])))
+                    start = index
+                }
+            }
+            if start < text.endIndex { items.append(.word(AttributedString(text[start..<text.endIndex]))) }
+            pending = []
+        }
+        for inline in content {
+            if let row = [inline].imageRow, row.count == 1 {
+                flushText()
+                items.append(.image(row[0]))
+            } else {
+                pending.append(inline)
+            }
+        }
+        flushText()
+        return items
     }
 }
 

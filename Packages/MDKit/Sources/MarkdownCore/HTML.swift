@@ -116,12 +116,47 @@ enum HTMLInline {
     static let wrappers: Set<String> = ["a", "b", "strong", "i", "em", "u", "ins", "s", "del", "strike", "code", "kbd", "sub", "sup", "mark", "span", "small", "picture"]
 
     /// Rewrites matched tag pairs in a sibling run of inlines. Unmatched or unsupported tags stay `.html`.
+    ///
+    /// Linear: every tag is parsed once and pairs are found with one stack pass (nearest open tag of the
+    /// same name, like browsers). Nesting deeper than `NodeConverter.maxDepth` is left as raw HTML so
+    /// hostile input like 2,000 nested `<b>` can't overflow the parse thread's stack.
     static func transform(_ inlines: [Inline]) -> [Inline] {
         guard inlines.contains(where: { if case .html = $0 { true } else { false } }) else { return inlines }
+        let tags: [HTMLTag?] = inlines.map { if case .html(let raw) = $0 { HTMLTag.parse(raw) } else { nil } }
+        let closeOf = pairs(tags)
+        return build(inlines, tags: tags, closeOf: closeOf, range: 0..<inlines.count, depth: 0).mergingAdjacentText()
+    }
+
+    /// closeOf[i] = index of the tag closing the wrapper opened at i.
+    private static func pairs(_ tags: [HTMLTag?]) -> [Int: Int] {
+        var closeOf: [Int: Int] = [:]
+        var stack: [(name: String, index: Int)] = []
+        var openCount: [String: Int] = [:]
+        for (index, tag) in tags.enumerated() {
+            guard let tag, !tag.isSelfClosing, wrappers.contains(tag.name) else { continue }
+            if !tag.isClosing {
+                stack.append((tag.name, index))
+                openCount[tag.name, default: 0] += 1
+                continue
+            }
+            // Closing tag: match the nearest open tag of the same name. Tags opened after it stay unmatched.
+            guard openCount[tag.name, default: 0] > 0 else { continue }
+            while let top = stack.popLast() {
+                openCount[top.name, default: 0] -= 1
+                if top.name == tag.name {
+                    closeOf[top.index] = index
+                    break
+                }
+            }
+        }
+        return closeOf
+    }
+
+    private static func build(_ inlines: [Inline], tags: [HTMLTag?], closeOf: [Int: Int], range: Range<Int>, depth: Int) -> [Inline] {
         var result: [Inline] = []
-        var i = 0
-        while i < inlines.count {
-            guard case .html(let raw) = inlines[i], let tag = HTMLTag.parse(raw), !tag.isClosing else {
+        var i = range.lowerBound
+        while i < range.upperBound {
+            guard let tag = tags[i], !tag.isClosing else {
                 result.append(inlines[i])
                 i += 1
                 continue
@@ -129,39 +164,28 @@ enum HTMLInline {
             if tag.isSelfClosing {
                 switch tag.name {
                 case "br": result.append(.lineBreak)
-                case "img":
-                    let width = tag.attributes["width"].flatMap { Double($0.replacingOccurrences(of: "px", with: "")) }
-                    result.append(.image(source: tag.attributes["src"] ?? "", title: tag.attributes["title"], alt: tag.attributes["alt"] ?? "", width: width))
+                case "img": result.append(image(from: tag))
                 case "source": break   // <picture> sources: the <img> fallback is used
                 default: result.append(inlines[i])
                 }
                 i += 1
                 continue
             }
-            guard wrappers.contains(tag.name), let close = matchingClose(for: tag.name, in: inlines, after: i) else {
+            if let close = closeOf[i], close < range.upperBound, depth < NodeConverter.maxDepth {
+                let children = build(inlines, tags: tags, closeOf: closeOf, range: (i + 1)..<close, depth: depth + 1)
+                result.append(contentsOf: wrap(children, in: tag))
+                i = close + 1
+            } else {
                 result.append(inlines[i])
                 i += 1
-                continue
             }
-            let children = transform(Array(inlines[(i + 1)..<close]))
-            result.append(contentsOf: wrap(children, in: tag))
-            i = close + 1
         }
-        return result.mergingAdjacentText()
+        return result
     }
 
-    private static func matchingClose(for name: String, in inlines: [Inline], after open: Int) -> Int? {
-        var depth = 0
-        for j in (open + 1)..<inlines.count {
-            guard case .html(let raw) = inlines[j], let tag = HTMLTag.parse(raw), tag.name == name, !tag.isSelfClosing else { continue }
-            if tag.isClosing {
-                if depth == 0 { return j }
-                depth -= 1
-            } else {
-                depth += 1
-            }
-        }
-        return nil
+    private static func image(from tag: HTMLTag) -> Inline {
+        let width = tag.attributes["width"].flatMap { Double($0.replacingOccurrences(of: "px", with: "")) }
+        return .image(source: tag.attributes["src"] ?? "", title: tag.attributes["title"], alt: tag.attributes["alt"] ?? "", width: width)
     }
 
     private static func wrap(_ children: [Inline], in tag: HTMLTag) -> [Inline] {
@@ -305,19 +329,20 @@ enum HTMLBlock {
     }
 
     /// Index of the `>` closing the tag that starts at `start`, honouring quoted attribute values.
+    /// A `<` always ends the search (even inside an unclosed quote), so every scan stops at the next
+    /// tag and tokenizing stays linear on malformed input like thousands of `<a title='x>`.
     private static func tagEnd(_ html: String, from start: String.Index) -> String.Index? {
         var quote: Character?
         var i = html.index(after: start)
         while i < html.endIndex {
             let c = html[i]
+            if c == "<" { return nil }
             if let q = quote {
                 if c == q { quote = nil }
             } else if c == "\"" || c == "'" {
                 quote = c
             } else if c == ">" {
                 return i
-            } else if c == "<" {
-                return nil
             }
             i = html.index(after: i)
         }
@@ -366,21 +391,81 @@ enum HTMLBlock {
     }
 }
 
-/// `<details><summary>…</summary>` … `</details>` spread over several HTML blocks, grouped into one block.
+/// `<details><summary>…</summary>` … `</details>`, possibly spread over several HTML blocks with
+/// Markdown between them, grouped into one collapsible block.
 enum DetailsHTML {
+    enum Segment: Equatable {
+        /// From `<details …>` up to the next details tag: the tag, the `<summary>` and any HTML body.
+        case opening(String)
+        case closing
+        case other(String)
+    }
+
     struct Opening {
         let summary: [Inline]
         let isOpen: Bool
-        /// HTML after `</summary>` in the opening block, when the whole `<details>` fits in one block.
-        let inlineBody: String?
+        /// HTML after `</summary>` (or after the `<details>` tag when there is no summary).
+        let body: String
     }
 
-    static func isOpening(_ html: String) -> Bool {
-        html.trimmingCharacters(in: .whitespacesAndNewlines).lowercased().hasPrefix("<details")
+    /// Splits raw HTML at every `<details …>` and `</details>` tag, so content sharing a block with
+    /// them is never lost. nil when the HTML has no details tags at all.
+    static func segments(_ html: String) -> [Segment]? {
+        let lower = html.lowercased()
+        guard lower.contains("<details") || lower.contains("</details>") else { return nil }
+        var markers: [(range: Range<String.Index>, isClosing: Bool)] = []
+        var searchStart = lower.startIndex
+        while let open = lower.range(of: "<details", range: searchStart..<lower.endIndex) {
+            let next = open.upperBound < lower.endIndex ? lower[open.upperBound] : ">"
+            if next.isWhitespace || next == ">" || next == "/" { markers.append((open, false)) }
+            searchStart = open.upperBound
+        }
+        searchStart = lower.startIndex
+        while let close = lower.range(of: "</details>", range: searchStart..<lower.endIndex) {
+            markers.append((close, true))
+            searchStart = close.upperBound
+        }
+        guard !markers.isEmpty else { return nil }
+        markers.sort { $0.range.lowerBound < $1.range.lowerBound }
+
+        // `lower` and `html` share indices: lowercasing ASCII tag names doesn't change lengths here,
+        // but to be safe slice `html` through utf16 offsets.
+        func slice(_ from: String.Index, _ to: String.Index) -> String {
+            let a = lower.utf16.distance(from: lower.startIndex, to: from)
+            let b = lower.utf16.distance(from: lower.startIndex, to: to)
+            let start = html.utf16.index(html.startIndex, offsetBy: a)
+            let end = html.utf16.index(html.startIndex, offsetBy: b)
+            return String(html[start..<end])
+        }
+
+        var segments: [Segment] = []
+        var cursor = lower.startIndex
+        for (index, marker) in markers.enumerated() {
+            let before = slice(cursor, marker.range.lowerBound)
+            if !before.allSatisfy(\.isWhitespace) { segments.append(.other(before)) }
+            if marker.isClosing {
+                segments.append(.closing)
+                cursor = marker.range.upperBound
+            } else {
+                let end = index + 1 < markers.count ? markers[index + 1].range.lowerBound : lower.endIndex
+                segments.append(.opening(slice(marker.range.lowerBound, end).trimmingCharacters(in: .whitespacesAndNewlines)))
+                cursor = end
+            }
+        }
+        let tail = slice(cursor, lower.endIndex)
+        if !tail.allSatisfy(\.isWhitespace) { segments.append(.other(tail)) }
+        return segments
     }
 
-    static func isClosing(_ html: String) -> Bool {
-        html.lowercased().contains("</details>")
+    static func isOpeningMarker(_ html: String) -> Bool {
+        let trimmed = html.trimmingCharacters(in: .whitespacesAndNewlines).lowercased()
+        guard trimmed.hasPrefix("<details") else { return false }
+        let next = trimmed.dropFirst("<details".count).first ?? ">"
+        return next.isWhitespace || next == ">" || next == "/"
+    }
+
+    static func isClosingMarker(_ html: String) -> Bool {
+        html.trimmingCharacters(in: .whitespacesAndNewlines).lowercased() == "</details>"
     }
 
     static func parseOpening(_ html: String) -> Opening? {
@@ -393,13 +478,10 @@ enum DetailsHTML {
            let openEnd = rest[open.upperBound...].firstIndex(of: ">"),
            let close = rest.range(of: "</summary>", options: .caseInsensitive, range: openEnd..<rest.endIndex) {
             let inner = String(rest[rest.index(after: openEnd)..<close.lowerBound])
-            summary = HTMLBlock.inlines(fromFragment: inner)
+            let parsed = HTMLBlock.inlines(fromFragment: inner)
+            if !parsed.isEmpty { summary = parsed }
             body = String(rest[close.upperBound...])
         }
-        var inlineBody: String?
-        if let end = body.range(of: "</details>", options: .caseInsensitive) {
-            inlineBody = String(body[..<end.lowerBound])
-        }
-        return Opening(summary: summary.isEmpty ? [.text("Details")] : summary, isOpen: tag.attributes["open"] != nil, inlineBody: inlineBody)
+        return Opening(summary: summary, isOpen: tag.attributes["open"] != nil, body: body)
     }
 }

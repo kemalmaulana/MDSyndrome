@@ -10,7 +10,10 @@ public enum InlineRenderer {
     /// Math nested inside emphasis or links falls back to monospaced source.
     @MainActor
     public static func text(_ inlines: [Inline], theme: PreviewTheme, fontSize: Double? = nil) -> Text {
-        guard inlines.contains(where: { if case .math = $0 { true } else { false } }) else {
+        let mathCount = inlines.reduce(0) { if case .math = $1 { $0 + 1 } else { $0 } }
+        // Hundreds of formulas in one paragraph: typesetting each and composing the Text costs more than
+        // it gives, so show them as source (still readable, never a crash).
+        guard mathCount > 0, mathCount <= maxTypesetFormulas else {
             return Text(attributedString(inlines, theme: theme))
         }
         var parts: [Text] = []
@@ -28,8 +31,18 @@ public enum InlineRenderer {
             }
         }
         flush()
-        // `Text + Text` is deprecated in macOS 26; interpolation composes the same way.
-        return parts.dropFirst().reduce(parts[0]) { Text("\($0)\($1)") }
+        return concatenate(parts[...])
+    }
+
+    /// Formulas per paragraph above which inline math is shown as source instead of typeset.
+    static let maxTypesetFormulas = 200
+
+    /// `Text + Text` is deprecated in macOS 26; interpolation composes the same way. Split in halves so
+    /// nesting depth is log2(n): a left fold nests once per part and overflows the stack for long runs.
+    private static func concatenate(_ parts: ArraySlice<Text>) -> Text {
+        if parts.count == 1 { return parts[parts.startIndex] }
+        let middle = parts.startIndex + parts.count / 2
+        return Text("\(concatenate(parts[..<middle]))\(concatenate(parts[middle...]))")
     }
 
     @MainActor

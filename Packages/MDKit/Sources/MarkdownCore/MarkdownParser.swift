@@ -132,12 +132,18 @@ struct NodeConverter {
         case CMARK_NODE_HTML_BLOCK:
             var html = math.restore(string(cmark_node_get_literal(node)))
             if html.hasSuffix("\n") { html.removeLast() }
-            // <details> pieces stay raw here; groupDetails folds them together afterwards.
-            if DetailsHTML.isOpening(html) || DetailsHTML.isClosing(html) { return [.htmlBlock(html)] }
-            if let elements = HTMLBlock.convert(html) {
-                return elements.map { .htmlParagraph(level: $0.level, alignment: $0.alignment, content: $0.content) }
+            // Split at <details>/</details> so nothing sharing the block is lost; the markers stay raw
+            // here and groupDetails folds them (and the blocks between them) together afterwards.
+            if let segments = DetailsHTML.segments(html) {
+                return segments.flatMap { segment -> [Block.Kind] in
+                    switch segment {
+                    case .opening(let raw): [.htmlBlock(raw)]
+                    case .closing: [.htmlBlock("</details>")]
+                    case .other(let raw): Self.htmlKinds(raw)
+                    }
+                }
             }
-            return [.htmlBlock(html)]
+            return Self.htmlKinds(html)
         case CMARK_NODE_THEMATIC_BREAK:
             return [.thematicBreak]
         case CMARK_NODE_FOOTNOTE_DEFINITION:
@@ -151,46 +157,49 @@ struct NodeConverter {
         }
     }
 
-    /// Folds `<details>` … `</details>` (raw HTML blocks with Markdown between them) into one `.details` block.
-    private func groupDetails(_ blocks: [Block], seen: inout [UInt64: Int]) -> [Block] {
+    /// HTML that is only simple layout + inline tags becomes native paragraphs; anything else stays raw.
+    static func htmlKinds(_ html: String) -> [Block.Kind] {
+        if let elements = HTMLBlock.convert(html) {
+            return elements.map { .htmlParagraph(level: $0.level, alignment: $0.alignment, content: $0.content) }
+        }
+        return [.htmlBlock(html)]
+    }
+
+    /// Folds `<details>` … `</details>` markers (and the blocks between them) into one `.details` block.
+    /// Markers are paired in one stack pass; unmatched ones stay raw. Nesting deeper than `maxDepth`
+    /// is left as raw HTML so hostile input can't overflow the stack.
+    private func groupDetails(_ blocks: [Block], seen: inout [UInt64: Int], depth: Int = 0) -> [Block] {
+        var closeOf: [Int: Int] = [:]
+        var open: [Int] = []
+        for (index, block) in blocks.enumerated() {
+            guard case .htmlBlock(let html) = block.kind else { continue }
+            if DetailsHTML.isOpeningMarker(html) {
+                open.append(index)
+            } else if DetailsHTML.isClosingMarker(html), let start = open.popLast() {
+                closeOf[start] = index
+            }
+        }
+        guard !closeOf.isEmpty, depth < Self.maxDepth else { return blocks }
+
         var out: [Block] = []
         var i = 0
         while i < blocks.count {
-            guard case .htmlBlock(let html) = blocks[i].kind, DetailsHTML.isOpening(html), let opening = DetailsHTML.parseOpening(html) else {
+            guard let close = closeOf[i], case .htmlBlock(let html) = blocks[i].kind, let opening = DetailsHTML.parseOpening(html) else {
                 out.append(blocks[i])
                 i += 1
                 continue
             }
-            if let body = opening.inlineBody {   // the whole <details> sits in one HTML block
-                let lines = blocks[i].lines
-                let inner = (HTMLBlock.convert(body) ?? []).map { element -> Block in
-                    let kind = Block.Kind.htmlParagraph(level: element.level, alignment: element.alignment, content: element.content)
-                    return Block(id: makeID(kind: kind, lines: lines, seen: &seen), lines: lines, kind: kind)
-                }
-                out.append(Block(id: blocks[i].id, lines: lines, kind: .details(summary: opening.summary, isOpen: opening.isOpen, blocks: inner)))
-                i += 1
-                continue
-            }
-            var nesting = 0
-            var close: Int?
-            for j in (i + 1)..<blocks.count {
-                guard case .htmlBlock(let candidate) = blocks[j].kind else { continue }
-                if DetailsHTML.isOpening(candidate) {
-                    if DetailsHTML.parseOpening(candidate)?.inlineBody == nil { nesting += 1 }
-                } else if DetailsHTML.isClosing(candidate) {
-                    if nesting == 0 { close = j; break }
-                    nesting -= 1
+            let lines = blocks[i].lines
+            var inner: [Block] = []
+            if !opening.body.allSatisfy(\.isWhitespace) {   // HTML right after </summary>
+                for kind in Self.htmlKinds(opening.body) {
+                    inner.append(Block(id: makeID(kind: kind, lines: lines, seen: &seen), lines: lines, kind: kind))
                 }
             }
-            guard let close else {
-                out.append(blocks[i])
-                i += 1
-                continue
-            }
-            let inner = groupDetails(Array(blocks[(i + 1)..<close]), seen: &seen)
+            inner += groupDetails(Array(blocks[(i + 1)..<close]), seen: &seen, depth: depth + 1)
             out.append(Block(
                 id: blocks[i].id,
-                lines: SourceLines(start: blocks[i].lines.start, end: blocks[close].lines.end),
+                lines: SourceLines(start: lines.start, end: blocks[close].lines.end),
                 kind: .details(summary: opening.summary, isOpen: opening.isOpen, blocks: inner)
             ))
             i = close + 1

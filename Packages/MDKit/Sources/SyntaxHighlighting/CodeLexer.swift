@@ -62,7 +62,7 @@ struct CodeLexer {
                 continue
             }
             if let prefix = definition.variablePrefix, c == prefix, i + 1 < chars.count, isIdentifierStart(chars[i + 1]) || chars[i + 1] == "{" {
-                let end = chars[i + 1] == "{" ? (find(["}"], from: i + 2).map { $0 + 1 } ?? i + 2) : identifierEnd(from: i + 1)
+                let end = chars[i + 1] == "{" ? braceEnd(from: i + 2) : identifierEnd(from: i + 1)
                 out.append(String(chars[i..<end]), .attribute)
                 i = end
                 continue
@@ -155,6 +155,16 @@ struct CodeLexer {
         }
         let content = chars[start + 1]
         return content != "'" && content != "\n" && chars[start + 2] == "'" ? start + 3 : nil
+    }
+
+    /// `${…}` ends at `}` on the same line; an unclosed one stops at the line end (keeps the lexer linear).
+    private func braceEnd(from start: Int) -> Int {
+        var j = start
+        while j < chars.count, chars[j] != "\n" {
+            if chars[j] == "}" { return j + 1 }
+            j += 1
+        }
+        return j
     }
 
     private func lineEnd(from start: Int) -> Int {

@@ -35,16 +35,24 @@ public enum Highlighter {
     }
 }
 
-/// Collects segments, merging neighbours of the same kind.
+/// Collects segments, merging neighbours of the same kind. The open run is kept in a mutable buffer
+/// so long same-kind runs append in amortised O(1) instead of copying the whole run every time.
 struct SegmentBuilder {
-    private(set) var segments: [HighlightSegment] = []
+    private var finished: [HighlightSegment] = []
+    private var runText = ""
+    private var runKind: TokenKind?
 
     mutating func append(_ text: some StringProtocol, _ kind: TokenKind?) {
         guard !text.isEmpty else { return }
-        if let last = segments.last, last.kind == kind {
-            segments[segments.count - 1] = HighlightSegment(text: last.text + text, kind: kind)
-        } else {
-            segments.append(HighlightSegment(text: String(text), kind: kind))
+        if !runText.isEmpty, kind != runKind {
+            finished.append(HighlightSegment(text: runText, kind: runKind))
+            runText = ""
         }
+        runKind = kind
+        runText += text
+    }
+
+    var segments: [HighlightSegment] {
+        runText.isEmpty ? finished : finished + [HighlightSegment(text: runText, kind: runKind)]
     }
 }

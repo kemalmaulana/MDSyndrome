@@ -136,3 +136,38 @@ extension Result<RenderedMath, MathRenderError> {
         #expect(image.size.height > 300)
     }
 }
+
+/// Regressions from the Plan 2 final review.
+@MainActor
+@Suite struct Plan2ReviewRenderTests {
+    @Test func thousandsOfInlineFormulasFallBackToSource() {
+        let inlines = Array(repeating: Inline.math(latex: "x_{n}", display: false), count: 2000)
+        _ = InlineRenderer.text(inlines, theme: .github)   // would nest 2,000 interpolations before
+        #expect(InlineRenderer.maxTypesetFormulas < 2000)
+    }
+}
+
+@MainActor
+@Suite(.requiresWindowServer) struct Plan2ReviewWindowTests {
+    private func render(_ md: String) -> NSImage? {
+        let rendered = MarkdownPipeline.render(md, options: .default)
+        let content = VStack(alignment: .leading) { ForEach(rendered.document.blocks) { BlockView(block: $0) } }
+            .frame(width: 500)
+        return ImageRenderer(content: content).nsImage
+    }
+
+    /// Used to recurse forever (main thread at 100% CPU, memory growing).
+    @Test(arguments: [
+        "Click the ![gear](gear.png) icon",
+        "![logo](logo.png)\nSome text",
+        "<p align=\"center\"><img src=\"icon.png\" width=\"20\"> MDSyndrome</p>",
+        "![a](a.svg) · ![b](b.svg)",
+    ])
+    func imageAndTextOnOneLineRenders(_ md: String) {
+        #expect(render(md) != nil)
+    }
+
+    @Test func manyFormulasInOneParagraphRender() {
+        #expect(render(String(repeating: "$x_{n}$ ", count: 150)) != nil)
+    }
+}

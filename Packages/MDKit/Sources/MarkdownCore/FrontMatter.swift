@@ -26,11 +26,16 @@ enum FrontMatter {
                 let key = text[..<colon].trimmingSpaces()
                 let value = unquote(text[text.index(after: colon)...].trimmingSpaces())
                 entries.append((String(key), value))
-            } else if !entries.isEmpty {
+            } else if entries.isEmpty {
+                // The first real line isn't `key: value`: this is a thematic break and ordinary
+                // Markdown (e.g. `---`, a heading, a paragraph, `---`), not front matter.
+                return nil
+            } else {
                 let addition = text.trimmingSpaces()
                 entries[entries.count - 1].value += entries[entries.count - 1].value.isEmpty ? addition : "\n" + addition
             }
         }
+        guard !entries.isEmpty else { return nil }
         return (entries.map { FrontMatterEntry(key: $0.key, value: $0.value) }, close + 1)
     }
 

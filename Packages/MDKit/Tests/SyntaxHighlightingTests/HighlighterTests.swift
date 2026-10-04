@@ -118,3 +118,24 @@ private func colored(_ code: String, _ language: String) -> [String] {
         #expect(elapsed < .seconds(3), "measured \(elapsed)")
     }
 }
+
+/// Regressions from the Plan 2 final review: same-kind runs and `${` used to be quadratic.
+@Suite struct HighlighterLinearityTests {
+    @Test func longSameKindRunIsLinear() {
+        let code = String(repeating: "abc def ghi + - * / ", count: 50_000)   // ~1 MB of plain tokens
+        let elapsed = ContinuousClock().measure { _ = Highlighter.highlight(code, language: "swift") }
+        #expect(elapsed < .seconds(3), "measured \(elapsed)")
+        #expect(Highlighter.highlight(code, language: "swift").map(\.text).joined() == code)
+    }
+
+    @Test func manyUnclosedShellBracesAreLinear() {
+        let code = String(repeating: "${", count: 50_000)
+        let elapsed = ContinuousClock().measure { _ = Highlighter.highlight(code, language: "sh") }
+        #expect(elapsed < .seconds(3), "measured \(elapsed)")
+    }
+
+    @Test func shellBraceStopsAtLineEnd() {
+        let segments = Highlighter.highlight("echo ${open\nnext line", language: "sh")
+        #expect(segments.contains(HighlightSegment(text: "${open", kind: .attribute)))
+    }
+}
