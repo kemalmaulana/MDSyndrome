@@ -45,8 +45,12 @@ import Testing
         #expect(inlines("~~x~~", options: options) == [.text("~~x~~")])
     }
 
-    @Test func inlineHTMLIsKeptAsHTML() {
-        #expect(inlines("<kbd>K</kbd>") == [.html("<kbd>"), .text("K"), .html("</kbd>")])
+    @Test func supportedInlineHTMLBecomesFormatting() {
+        #expect(inlines("<kbd>K</kbd>") == [.keyboard([.text("K")])])
+    }
+
+    @Test func unsupportedInlineHTMLIsKeptAsHTML() {
+        #expect(inlines("<blink>K</blink>") == [.html("<blink>"), .text("K"), .html("</blink>")])
     }
 
     @Test func smartPunctuationIsOptIn() {

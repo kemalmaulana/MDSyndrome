@@ -45,8 +45,16 @@ public struct Block: Hashable, Sendable, Identifiable {
         case table(TableBlock)
         case mathBlock(latex: String)
         case footnoteDefinition(index: Int, label: String, blocks: [Block])
+        /// YAML front matter at the top of the document.
+        case frontMatter([FrontMatterEntry])
+        /// `<details><summary>…` — a collapsible section.
+        case details(summary: [Inline], isOpen: Bool, blocks: [Block])
+        /// A paragraph (level 0) or heading (1…6) written as HTML, e.g. `<p align="center">`.
+        case htmlParagraph(level: Int, alignment: BlockAlignment, content: [Inline])
     }
 }
+
+public enum BlockAlignment: Hashable, Sendable { case leading, center, trailing }
 
 public struct ListBlock: Hashable, Sendable {
     public let ordered: Bool
@@ -81,12 +89,20 @@ public enum Inline: Hashable, Sendable {
     case strikethrough([Inline])
     case code(String)
     case link(destination: String, title: String?, content: [Inline])
-    case image(source: String, title: String?, alt: String)
+    /// `width` comes from HTML `<img width>`; Markdown images have none.
+    case image(source: String, title: String?, alt: String, width: Double? = nil)
     case softBreak
     case lineBreak
     case html(String)
     case math(latex: String, display: Bool)
     case footnoteReference(index: Int)
+    /// `==marked==` or `<mark>`.
+    case highlight([Inline])
+    case superscript([Inline])
+    case `subscript`([Inline])
+    case underline([Inline])
+    /// `<kbd>`.
+    case keyboard([Inline])
 }
 
 extension Inline {
@@ -98,9 +114,10 @@ extension Inline {
     public var plainText: String {
         switch self {
         case .text(let s), .code(let s): s
-        case .emphasis(let c), .strong(let c), .strikethrough(let c): Inline.plainText(c)
+        case .emphasis(let c), .strong(let c), .strikethrough(let c), .highlight(let c),
+             .superscript(let c), .subscript(let c), .underline(let c), .keyboard(let c): Inline.plainText(c)
         case .link(_, _, let c): Inline.plainText(c)
-        case .image(_, _, let alt): alt
+        case .image(_, _, let alt, _): alt
         case .softBreak, .lineBreak: " "
         case .html: ""
         case .math(let latex, _): latex

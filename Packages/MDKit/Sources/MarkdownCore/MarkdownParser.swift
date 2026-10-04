@@ -11,9 +11,19 @@ public enum MarkdownParser {
         _ = registerExtensions
         // Line numbers from cmark count \r\n, \r and \n alike; normalise so our own line splitting agrees.
         let text = text.normalizedLineEndings
+        let lines = text.split(separator: "\n", omittingEmptySubsequences: false)
+
+        // Front matter is blanked for cmark (keeping the line count) and added back as its own block.
+        var frontMatter: (entries: [FrontMatterEntry], lineCount: Int)?
+        var body = text
+        if options.frontMatter, let found = FrontMatter.extract(lines) {
+            frontMatter = found
+            body = (Array(repeating: Substring(""), count: found.lineCount) + lines.dropFirst(found.lineCount)).joined(separator: "\n")
+        }
+
         let protected = options.math
-            ? MathExtractor.protect(text, singleDollar: options.singleDollarMath)
-            : ProtectedSource(text: text, spans: [])
+            ? MathExtractor.protect(body, singleDollar: options.singleDollarMath)
+            : ProtectedSource(text: body, spans: [])
 
         var flags = CMARK_OPT_SOURCEPOS
         if options.footnotes { flags |= CMARK_OPT_FOOTNOTES }
@@ -38,12 +48,13 @@ public enum MarkdownParser {
         guard let root = cmark_parser_finish(parser) else { return MarkdownDocument(blocks: []) }
         defer { cmark_node_free(root) }
 
-        var converter = NodeConverter(
-            originalLines: text.split(separator: "\n", omittingEmptySubsequences: false),
-            math: protected,
-            hardBreaks: options.hardBreaks
-        )
-        return MarkdownDocument(blocks: converter.blocks(under: root, depth: 0))
+        var converter = NodeConverter(originalLines: lines, math: protected, hardBreaks: options.hardBreaks, highlightMarks: options.highlight)
+        var blocks = converter.blocks(under: root, depth: 0)
+        if let frontMatter, !frontMatter.entries.isEmpty {
+            let range = SourceLines(start: 1, end: frontMatter.lineCount)
+            blocks.insert(Block(id: converter.standaloneID(tag: "fm", lines: range), lines: range, kind: .frontMatter(frontMatter.entries)), at: 0)
+        }
+        return MarkdownDocument(blocks: blocks)
     }
 }
 
@@ -60,12 +71,15 @@ struct NodeConverter {
     /// CMARK_OPT_HARDBREAKS only affects cmark's own renderers; the tree still
     /// has soft breaks, so the conversion is done here.
     let hardBreaks: Bool
+    /// `==marked==` text (MarkdownOptions.highlight).
+    let highlightMarks: Bool
     private var footnoteCount = 0
 
-    init(originalLines: [Substring], math: ProtectedSource, hardBreaks: Bool) {
+    init(originalLines: [Substring], math: ProtectedSource, hardBreaks: Bool, highlightMarks: Bool) {
         self.originalLines = originalLines
         self.math = math
         self.hardBreaks = hardBreaks
+        self.highlightMarks = highlightMarks
     }
 
     mutating func blocks(under parent: CMarkNode, depth: Int) -> [Block] {
@@ -73,55 +87,124 @@ struct NodeConverter {
         var seen: [UInt64: Int] = [:]
         var child = cmark_node_first_child(parent)
         while let node = child {
-            if let kind = blockKind(node, depth: depth) {
-                let lines = sourceLines(node)
-                let id = makeID(kind: kind, lines: lines, seen: &seen)
-                result.append(Block(id: id, lines: lines, kind: kind))
+            let lines = sourceLines(node)
+            // One cmark node usually gives one block; an HTML block can give several (or none).
+            for kind in blockKinds(node, depth: depth) {
+                result.append(Block(id: makeID(kind: kind, lines: lines, seen: &seen), lines: lines, kind: kind))
             }
             child = cmark_node_next(node)
         }
-        return result
+        return groupDetails(result, seen: &seen)
     }
 
-    private mutating func blockKind(_ node: CMarkNode, depth: Int) -> Block.Kind? {
+    /// Id for a block built outside the tree walk (front matter).
+    func standaloneID(tag: String, lines: SourceLines) -> BlockID {
+        var seen: [UInt64: Int] = [:]
+        return makeID(tag: tag, lines: lines, seen: &seen)
+    }
+
+    private mutating func blockKinds(_ node: CMarkNode, depth: Int) -> [Block.Kind] {
         let type = cmark_node_get_type(node)
         let isContainer = type == CMARK_NODE_BLOCK_QUOTE || type == CMARK_NODE_LIST || type == CMARK_NODE_FOOTNOTE_DEFINITION
         if isContainer, depth >= Self.maxDepth {
-            return .paragraph([.text(flattenedText(node))])
+            return [.paragraph([.text(flattenedText(node))])]
         }
         switch type {
         case CMARK_NODE_PARAGRAPH:
             let content = inlines(under: node, depth: 0)
-            if case .math(let latex, true)? = content.onlyNonWhitespace { return .mathBlock(latex: latex) }
-            return .paragraph(content)
+            if case .math(let latex, true)? = content.onlyNonWhitespace { return [.mathBlock(latex: latex)] }
+            return [.paragraph(content)]
         case CMARK_NODE_HEADING:
-            return .heading(level: Int(cmark_node_get_heading_level(node)), content: inlines(under: node, depth: 0))
+            return [.heading(level: Int(cmark_node_get_heading_level(node)), content: inlines(under: node, depth: 0))]
         case CMARK_NODE_BLOCK_QUOTE:
-            return .blockQuote(blocks(under: node, depth: depth + 1))
+            // A quote can end up empty (e.g. it only held a footnote definition, which cmark moves away).
+            let children = blocks(under: node, depth: depth + 1)
+            return children.isEmpty ? [] : [.blockQuote(children)]
         case CMARK_NODE_LIST:
-            return .list(list(node, depth: depth))
+            return [.list(list(node, depth: depth))]
         case CMARK_NODE_CODE_BLOCK:
             var code = math.restore(string(cmark_node_get_literal(node)))
             if code.hasSuffix("\n") { code.removeLast() }
             let info = string(cmark_node_get_fence_info(node))
             let language = info.split(separator: " ").first.map(String.init)
-            if language?.lowercased() == "math" { return .mathBlock(latex: code) }
-            return .codeBlock(language: language, code: code)
+            if language?.lowercased() == "math" { return [.mathBlock(latex: code)] }
+            return [.codeBlock(language: language, code: code)]
         case CMARK_NODE_HTML_BLOCK:
             var html = math.restore(string(cmark_node_get_literal(node)))
             if html.hasSuffix("\n") { html.removeLast() }
-            return .htmlBlock(html)
+            // Split at <details>/</details> so nothing sharing the block is lost; the markers stay raw
+            // here and groupDetails folds them (and the blocks between them) together afterwards.
+            if let segments = DetailsHTML.segments(html) {
+                return segments.flatMap { segment -> [Block.Kind] in
+                    switch segment {
+                    case .opening(let raw): [.htmlBlock(raw)]
+                    case .closing: [.htmlBlock("</details>")]
+                    case .other(let raw): Self.htmlKinds(raw)
+                    }
+                }
+            }
+            return Self.htmlKinds(html)
         case CMARK_NODE_THEMATIC_BREAK:
-            return .thematicBreak
+            return [.thematicBreak]
         case CMARK_NODE_FOOTNOTE_DEFINITION:
             // cmark-gfm appends referenced definitions to the end of the
             // document in reference order, so position == reference index.
             footnoteCount += 1
-            return .footnoteDefinition(index: footnoteCount, label: math.restore(string(cmark_node_get_literal(node))), blocks: blocks(under: node, depth: depth + 1))
+            return [.footnoteDefinition(index: footnoteCount, label: math.restore(string(cmark_node_get_literal(node))), blocks: blocks(under: node, depth: depth + 1))]
         default:
-            if typeString(node) == "table" { return .table(table(node)) }
-            return nil
+            if typeString(node) == "table" { return [.table(table(node))] }
+            return []
         }
+    }
+
+    /// HTML that is only simple layout + inline tags becomes native paragraphs; anything else stays raw.
+    static func htmlKinds(_ html: String) -> [Block.Kind] {
+        if let elements = HTMLBlock.convert(html) {
+            return elements.map { .htmlParagraph(level: $0.level, alignment: $0.alignment, content: $0.content) }
+        }
+        return [.htmlBlock(html)]
+    }
+
+    /// Folds `<details>` … `</details>` markers (and the blocks between them) into one `.details` block.
+    /// Markers are paired in one stack pass; unmatched ones stay raw. Nesting deeper than `maxDepth`
+    /// is left as raw HTML so hostile input can't overflow the stack.
+    private func groupDetails(_ blocks: [Block], seen: inout [UInt64: Int], depth: Int = 0) -> [Block] {
+        var closeOf: [Int: Int] = [:]
+        var open: [Int] = []
+        for (index, block) in blocks.enumerated() {
+            guard case .htmlBlock(let html) = block.kind else { continue }
+            if DetailsHTML.isOpeningMarker(html) {
+                open.append(index)
+            } else if DetailsHTML.isClosingMarker(html), let start = open.popLast() {
+                closeOf[start] = index
+            }
+        }
+        guard !closeOf.isEmpty, depth < Self.maxDepth else { return blocks }
+
+        var out: [Block] = []
+        var i = 0
+        while i < blocks.count {
+            guard let close = closeOf[i], case .htmlBlock(let html) = blocks[i].kind, let opening = DetailsHTML.parseOpening(html) else {
+                out.append(blocks[i])
+                i += 1
+                continue
+            }
+            let lines = blocks[i].lines
+            var inner: [Block] = []
+            if !opening.body.allSatisfy(\.isWhitespace) {   // HTML right after </summary>
+                for kind in Self.htmlKinds(opening.body) {
+                    inner.append(Block(id: makeID(kind: kind, lines: lines, seen: &seen), lines: lines, kind: kind))
+                }
+            }
+            inner += groupDetails(Array(blocks[(i + 1)..<close]), seen: &seen, depth: depth + 1)
+            out.append(Block(
+                id: blocks[i].id,
+                lines: SourceLines(start: lines.start, end: blocks[close].lines.end),
+                kind: .details(summary: opening.summary, isOpen: opening.isOpen, blocks: inner)
+            ))
+            i = close + 1
+        }
+        return out
     }
 
     private mutating func list(_ node: CMarkNode, depth: Int) -> ListBlock {
@@ -186,7 +269,14 @@ struct NodeConverter {
             result.append(contentsOf: inline(node, depth: depth, literalMath: literalMath))
             child = cmark_node_next(node)
         }
-        return result.mergingAdjacentText()
+        var merged = result.mergingAdjacentText()
+        if highlightMarks, !literalMath {
+            merged = merged.flatMap { inline -> [Inline] in
+                if case .text(let s) = inline { return HighlightMarks.split(s) }
+                return [inline]
+            }
+        }
+        return HTMLInline.transform(merged)
     }
 
     private func inline(_ node: CMarkNode, depth: Int, literalMath: Bool) -> [Inline] {
@@ -292,6 +382,9 @@ struct NodeConverter {
         case .table: "t"
         case .mathBlock: "m"
         case .footnoteDefinition: "fn"
+        case .frontMatter: "fm"
+        case .details: "details"
+        case .htmlParagraph: "hp"
         }
     }
 

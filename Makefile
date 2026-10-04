@@ -28,7 +28,7 @@ run: build
 
 # PRD NF-1: only WebRenderKit may import WebKit.
 lint:
-	@! grep -rl --include='*.swift' -E '^import WebKit' MDSyndrome Packages/MDKit/Sources | grep -v '/WebRenderKit/' || (echo "error: WebKit imported outside WebRenderKit" && false)
+	@! grep -rlE --include='*.swift' '^[[:space:]]*(@[A-Za-z]+[[:space:]]+)*((public|package|internal|fileprivate|private)[[:space:]]+)?import[[:space:]]+((class|struct|enum|protocol|func|var|let|typealias)[[:space:]]+)?WebKit([.[:space:]]|$$)' MDSyndrome Packages/MDKit/Sources | grep -v '/WebRenderKit/' || (echo "error: WebKit imported outside WebRenderKit" && false)
 
 # Universal Release build packaged as dist/MDSyndrome-<version>-macOS.zip + .dmg + SHA256SUMS.txt
 #   make dist VERSION=1.2.3 [BUILD=42]

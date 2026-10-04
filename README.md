@@ -50,13 +50,15 @@ It runs natively on Apple Silicon, has no Electron, and renders its preview nati
 | "Is this file going to do something weird?" | No script in a document ever runs. Links only open for `http(s)` and `mailto`. A file nested 5,000 levels deep won't crash it | ✅ |
 | "How long is this thing?" | Live words, characters, lines and reading time | ✅ |
 | "Documents just work" | New, Open, Recent, autosave, Versions, tabs, undo that behaves | ✅ |
-| `$E = mc^2$` | Math is detected now; native LaTeX rendering (SwiftMath) is coming | 🧪 v0.2 |
-| ```` ```swift ```` | Syntax-highlighted code blocks | 🧪 v0.2 |
-| ```` ```mermaid ```` | Mermaid and Graphviz diagrams | 🧪 v0.2 |
-| "Where are my editor colours and shortcuts?" | Markdown syntax highlighting, themes, list continuation, <kbd>⌘B</kbd>/<kbd>⌘I</kbd>/<kbd>⌘K</kbd> | 🧪 v0.3 |
-| "I lose my place" | Synced scrolling and an outline sidebar | 🧪 v0.4 |
-| "Make it pretty" | Preview and editor themes, a Settings window, your own themes as JSON | 🧪 v0.5 |
-| "Send it to my boss" | Export to HTML and PDF, and print | 🧪 v0.6 |
+| `$E = mc^2$` | Native LaTeX math, inline and display (SwiftMath). A formula it can't typeset shows its source in red | ✅ v0.2 |
+| ```` ```swift ```` | Syntax-highlighted code blocks in 20+ languages, GitHub colours in light and dark | ✅ v0.2 |
+| "My README looks broken" | `<p align="center">`, `<img width>`, badge rows, `<details>`, `<kbd>`, `<sub>`/`<sup>` and YAML front matter render natively | ✅ v0.2 |
+| `==highlight==` | Marked text, MacDown-style | ✅ v0.2 |
+| ```` ```mermaid ```` | Mermaid and Graphviz diagrams | 🧪 v0.3 |
+| "Where are my editor colours and shortcuts?" | Markdown syntax highlighting, themes, list continuation, <kbd>⌘B</kbd>/<kbd>⌘I</kbd>/<kbd>⌘K</kbd> | 🧪 v0.4 |
+| "I lose my place" | Synced scrolling and an outline sidebar | 🧪 v0.5 |
+| "Make it pretty" | Preview and editor themes, a Settings window, your own themes as JSON | 🧪 v0.6 |
+| "Send it to my boss" | Export to HTML and PDF, and print | 🧪 v0.7 |
 
 ✅ ships today · 🧪 in clinical trials (see [the treatment plan](#-treatment-plan))
 
@@ -154,12 +156,13 @@ The divider between the panes can be dragged, and every window remembers its lay
 | Phase | Milestone | Scope | |
 |---|---|---|:---:|
 | Plan 1 | M0 + M1 | Parser, native preview, editor, split window, documents, tests | ✅ |
-| Plan 2 | M2 | Native LaTeX, code highlighting, HTML subset, front matter, Mermaid & Graphviz | 🔜 |
-| Plan 3 | M3 | Editor syntax highlighting, themes, list continuation, formatting shortcuts, toolbar | |
-| Plan 4 | M4 | Synced scrolling, outline sidebar, anchors, links between documents, find in preview | |
-| Plan 5 | M5 | Themes and Settings | |
-| Plan 6 | M6 | Export to HTML and PDF, print | |
-| Plan 7 | M7 | Performance and accessibility pass, Quick Look extension, Homebrew cask | |
+| Plan 2 | M2 (native) | Native LaTeX, code highlighting, HTML subset, `<details>`, front matter, `==highlight==` | ✅ |
+| Plan 3 | M2 (web) | WebRenderKit: Mermaid, Graphviz, KaTeX fallback, raw-HTML snapshots | 🔜 |
+| Plan 4 | M3 | Editor syntax highlighting, themes, list continuation, formatting shortcuts, toolbar | |
+| Plan 5 | M4 | Synced scrolling, outline sidebar, anchors, links between documents, find in preview | |
+| Plan 6 | M5 | Themes and Settings | |
+| Plan 7 | M6 | Export to HTML and PDF, print | |
+| Plan 8 | M7 | Performance and accessibility pass, Quick Look extension, Homebrew cask | |
 
 ## 🚀 Shipping a release (maintainers)
 
@@ -233,7 +236,7 @@ Releases are universal binaries, but the minimum is **macOS 26**. If your Intel 
 <details>
 <summary><b>The editor has no colours yet?</b></summary>
 
-Correct, the editor is plain monospaced text for now. It uses MacDown's defaults (Menlo 14, same spacing and margins). Markdown syntax highlighting and editor themes, including MacDown's Tomorrow+, are in Plan 3.
+Correct, the editor is plain monospaced text for now. It uses MacDown's defaults (Menlo 14, same spacing and margins). Markdown syntax highlighting and editor themes, including MacDown's Tomorrow+, are in Plan 4.
 </details>
 
 ## 📜 License & credits

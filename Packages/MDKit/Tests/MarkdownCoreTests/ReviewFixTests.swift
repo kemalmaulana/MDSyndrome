@@ -72,18 +72,18 @@ import Testing
     /// Was quadratic: 99 KB of "$a " took 11 s per render in a release build.
     @Test func longLineOfUnclosedDollarsIsLinear() async {
         let elapsed = await renderTime(String(repeating: "$a ", count: 33_000))
-        #expect(elapsed < .seconds(2), "measured \(elapsed)")
+        #expect(elapsed < .budget(2), "measured \(elapsed)")
     }
 
     /// Was quadratic: 40,000 U+E000 characters plus one math span took 23.6 s.
     @Test func privateUseCharactersDoNotSlowPlaceholderRestore() async {
         let elapsed = await renderTime(String(repeating: "\u{E000}", count: 40_000) + " $x$")
-        #expect(elapsed < .seconds(2), "measured \(elapsed)")
+        #expect(elapsed < .budget(2), "measured \(elapsed)")
     }
 
     @Test func manyUnmatchedBacktickRunsAreFine() async {
         let line = (1...300).map { String(repeating: "`", count: $0) }.joined(separator: " x ") + " $y$"
         let elapsed = await renderTime(line)
-        #expect(elapsed < .seconds(2), "measured \(elapsed)")
+        #expect(elapsed < .budget(2), "measured \(elapsed)")
     }
 }

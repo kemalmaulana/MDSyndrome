@@ -4,6 +4,8 @@ import SwiftUI
 struct ImageBlockView: View {
     let source: String
     let alt: String
+    /// Display width from HTML `<img width>`; otherwise the image's own width (never upscaled).
+    var width: Double? = nil
     @Environment(\.documentBaseURL) private var baseURL
     @Environment(\.previewTheme) private var theme
     @State private var phase: Phase = .loading
@@ -24,7 +26,7 @@ struct ImageBlockView: View {
                 Image(nsImage: image)
                     .resizable()
                     .aspectRatio(contentMode: .fit)
-                    .frame(maxWidth: image.size.width)
+                    .frame(maxWidth: width ?? image.size.width)
                     .accessibilityLabel(alt)
             case .failed(let reason):
                 Label(alt.isEmpty ? reason : alt, systemImage: "photo.badge.exclamationmark")

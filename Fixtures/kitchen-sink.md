@@ -1,12 +1,18 @@
+---
+title: Kitchen Sink
+tags:
+  - fixture
+  - preview
+---
 # Kitchen Sink
 
-Every Plan 1 preview feature in one file. Open it with `make run` → File → Open.
+Every supported preview feature in one file. Open it with `make run` → File → Open.
 
 ## Inline
 
 Plain, *emphasis*, **strong**, ***both***, ~~strikethrough~~, `inline code`, <kbd>⌘</kbd>,
 a [link to example.com](https://example.com "Title"), an autolink www.example.com,
-math $E = mc^2$ (shown as source until Plan 2), currency $5 and $10, and a footnote[^note].
+math $E = mc^2$, currency $5 and $10, and a footnote[^note].
 Line one with a hard break\
 line two.
 
@@ -83,5 +89,43 @@ Missing image:
 <div align="center">raw html block</div>
 
 ---
+
+## Plan 2: native rendering
+
+Inline math $\frac{a}{b} + \sqrt{x}$, a formula SwiftMath can't typeset $\operatorname{sin} x$,
+==highlighted text==, H<sub>2</sub>O, x<sup>2</sup>, <u>underlined</u>, press <kbd>⌘</kbd> <kbd>K</kbd>.
+
+$$
+\begin{pmatrix} 1 & 2 \\ 3 & 4 \end{pmatrix} \cdot \vec{v} = \lambda \vec{v}
+$$
+
+```python
+@cache
+def fib(n: int) -> int:
+    """Fibonacci, memoised."""
+    return n if n < 2 else fib(n - 1) + fib(n - 2)  # recursion
+```
+
+```json
+{ "name": "MDSyndrome", "native": true, "version": 0.2 }
+```
+
+```diff
+- needs Rosetta
++ native on Apple Silicon
+```
+
+<p align="center">
+  <img src="images/badge.svg" alt="build badge"> <img src="images/badge.svg" alt="build badge again">
+</p>
+
+<h3 align="center">A centred HTML heading</h3>
+
+<details>
+<summary><b>Click to expand</b></summary>
+
+Hidden **Markdown** inside a `<details>` block.
+
+</details>
 
 [^note]: The footnote text.

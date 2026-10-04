@@ -72,6 +72,6 @@ import Testing
         let elapsed = await ContinuousClock().measure {
             _ = await Task.detached { MarkdownPipeline.render(source, options: .default) }.value
         }
-        #expect(elapsed < .seconds(2), "measured \(elapsed)")
+        #expect(elapsed < .budget(2), "measured \(elapsed)")
     }
 }

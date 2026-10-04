@@ -47,7 +47,8 @@ import Testing
     }
 
     @Test func htmlBlockAndThematicBreak() {
-        #expect(kinds("<div>x</div>\n\n---") == [.htmlBlock("<div>x</div>"), .thematicBreak])
+        #expect(kinds("<div>x</div>\n\n---") == [.htmlParagraph(level: 0, alignment: .leading, content: [.text("x")]), .thematicBreak])
+        #expect(kinds("<table><tr><td>x</td></tr></table>") == [.htmlBlock("<table><tr><td>x</td></tr></table>")])
     }
 
     @Test func sourceLinesAreOneBasedAndInclusive() {

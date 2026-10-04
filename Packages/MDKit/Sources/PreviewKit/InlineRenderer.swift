@@ -2,10 +2,62 @@ import Foundation
 import MarkdownCore
 import SwiftUI
 
-/// Turns inline AST nodes into one AttributedString for a single `Text`.
+/// Turns inline AST nodes into text for a single `Text`.
 /// Emphasis/strong/code/strikethrough use `inlinePresentationIntent`, which
 /// SwiftUI combines correctly (e.g. bold + italic) with the surrounding font.
 public enum InlineRenderer {
+    /// Text with native math: top-level `.math` inlines become typeset images sitting on the baseline.
+    /// Math nested inside emphasis or links falls back to monospaced source.
+    @MainActor
+    public static func text(_ inlines: [Inline], theme: PreviewTheme, fontSize: Double? = nil) -> Text {
+        let mathCount = inlines.reduce(0) { if case .math = $1 { $0 + 1 } else { $0 } }
+        // Hundreds of formulas in one paragraph: typesetting each and composing the Text costs more than
+        // it gives, so show them as source (still readable, never a crash).
+        guard mathCount > 0, mathCount <= maxTypesetFormulas else {
+            return Text(attributedString(inlines, theme: theme))
+        }
+        var parts: [Text] = []
+        var buffer: [Inline] = []
+        func flush() {
+            if !buffer.isEmpty { parts.append(Text(attributedString(buffer, theme: theme))) }
+            buffer = []
+        }
+        for inline in inlines {
+            if case .math(let latex, let display) = inline {
+                flush()
+                parts.append(mathText(latex, display: display, fontSize: fontSize ?? theme.bodyFontSize, theme: theme))
+            } else {
+                buffer.append(inline)
+            }
+        }
+        flush()
+        return concatenate(parts[...])
+    }
+
+    /// Formulas per paragraph above which inline math is shown as source instead of typeset.
+    static let maxTypesetFormulas = 200
+
+    /// `Text + Text` is deprecated in macOS 26; interpolation composes the same way. Split in halves so
+    /// nesting depth is log2(n): a left fold nests once per part and overflows the stack for long runs.
+    private static func concatenate(_ parts: ArraySlice<Text>) -> Text {
+        if parts.count == 1 { return parts[parts.startIndex] }
+        let middle = parts.startIndex + parts.count / 2
+        return Text("\(concatenate(parts[..<middle]))\(concatenate(parts[middle...]))")
+    }
+
+    @MainActor
+    private static func mathText(_ latex: String, display: Bool, fontSize: Double, theme: PreviewTheme) -> Text {
+        switch MathRenderer.render(latex, fontSize: fontSize, display: display) {
+        case .success(let math):
+            return Text(Image(nsImage: math.image).renderingMode(.template)).baselineOffset(-math.descent)
+        case .failure:
+            var source = AttributedString(latex)
+            source.inlinePresentationIntent = .code
+            source.foregroundColor = theme.error.color
+            return Text(source)
+        }
+    }
+
     public static func attributedString(_ inlines: [Inline], theme: PreviewTheme) -> AttributedString {
         var result = AttributedString()
         append(inlines, to: &result, intent: [], theme: theme)
@@ -33,7 +85,7 @@ public enum InlineRenderer {
                 link.foregroundColor = theme.link.color
                 if let url = URL(string: destination) { link.link = url }
                 result += link
-            case .image(_, _, let alt):
+            case .image(_, _, let alt, _):
                 var image = run(alt.isEmpty ? "[image]" : "[\(alt)]", intent)
                 image.foregroundColor = theme.secondaryText.color
                 result += image
@@ -46,7 +98,7 @@ public enum InlineRenderer {
                 raw.foregroundColor = theme.secondaryText.color
                 result += raw
             case .math(let latex, _):
-                // Placeholder until native math rendering lands (plan 2).
+                // Only reached for math nested in other inlines; top-level math goes through `text(_:)`.
                 var math = run(latex, intent.union(.code))
                 math.foregroundColor = theme.secondaryText.color
                 result += math
@@ -57,6 +109,30 @@ public enum InlineRenderer {
                 reference.foregroundColor = theme.link.color
                 reference.link = URL(string: "#fn-\(index)")
                 result += reference
+            case .highlight(let children):
+                var marked = AttributedString()
+                append(children, to: &marked, intent: intent, theme: theme)
+                marked.backgroundColor = theme.highlightBackground.color
+                result += marked
+            case .superscript(let children), .subscript(let children):
+                var shifted = AttributedString()
+                append(children, to: &shifted, intent: intent, theme: theme)
+                let isSuper = if case .superscript = inline { true } else { false }
+                shifted.baselineOffset = theme.bodyFontSize * (isSuper ? 0.35 : -0.2)
+                shifted.font = .system(size: theme.bodyFontSize * 0.75)
+                result += shifted
+            case .underline(let children):
+                var underlined = AttributedString()
+                append(children, to: &underlined, intent: intent, theme: theme)
+                underlined.underlineStyle = .single
+                result += underlined
+            case .keyboard(let children):
+                var key = AttributedString("\u{2009}")   // thin spaces pad the key cap
+                append(children, to: &key, intent: intent.union(.code), theme: theme)
+                key += AttributedString("\u{2009}")
+                key.backgroundColor = theme.codeBackground.color
+                key.font = .system(size: theme.codeFontSize, design: .monospaced)
+                result += key
             }
         }
     }

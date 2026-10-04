@@ -27,7 +27,7 @@ struct TableBlockView: View {
 
     /// `row == nil` is the header row.
     private func cell(_ content: [Inline], column: Int, row: Int?) -> some View {
-        Text(InlineRenderer.attributedString(content, theme: theme))
+        InlineRenderer.text(content, theme: theme)
             .fontWeight(row == nil ? .semibold : .regular)
             .multilineTextAlignment(textAlignment(column))
             .frame(maxWidth: .infinity, alignment: frameAlignment(column))

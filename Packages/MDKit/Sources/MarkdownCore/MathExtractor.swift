@@ -15,6 +15,7 @@ public enum MathExtractor {
         var fence: (char: Character, count: Int)? = nil
         var inMathBlock = false
         var index = 0
+        let closerAhead = displayDelimiterAhead(lines)
 
         while index < lines.count {
             let line = lines[index]
@@ -39,8 +40,7 @@ public enum MathExtractor {
                 out.append(line)
                 continue
             }
-            if isDisplayDelimiter(line),
-               lines[(index + 1)...].contains(where: isDisplayDelimiter) {
+            if isDisplayDelimiter(line), closerAhead[index] {
                 inMathBlock = true
                 out.append(line.replacingOccurrences(of: "$$", with: "```math"))
                 continue
@@ -48,6 +48,29 @@ public enum MathExtractor {
             out.append(protectInline(line, singleDollar: singleDollar, spans: &spans))
         }
         return ProtectedSource(text: out.joined(separator: "\n"), spans: spans)
+    }
+
+    /// `result[i]`: some later line is a `$$` delimiter outside fenced code. Precomputed in two linear
+    /// passes so a `$$` never pairs with one inside a code block, and many unmatched `$$` stay cheap.
+    private static func displayDelimiterAhead(_ lines: [String]) -> [Bool] {
+        var candidate = [Bool](repeating: false, count: lines.count)
+        var fence: (char: Character, count: Int)? = nil
+        for (i, line) in lines.enumerated() {
+            if let open = fence {
+                if closesFence(line, open) { fence = nil }
+            } else if let opened = opensFence(line) {
+                fence = opened
+            } else {
+                candidate[i] = isDisplayDelimiter(line)
+            }
+        }
+        var ahead = [Bool](repeating: false, count: lines.count)
+        var seen = false
+        for i in stride(from: lines.count - 1, through: 0, by: -1) {
+            ahead[i] = seen
+            if candidate[i] { seen = true }
+        }
+        return ahead
     }
 
     private static func isDisplayDelimiter(_ line: String) -> Bool {
