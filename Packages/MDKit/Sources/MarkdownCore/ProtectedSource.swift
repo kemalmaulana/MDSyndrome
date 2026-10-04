@@ -15,8 +15,11 @@ public struct ProtectedSource: Sendable {
     public let text: String
     public let spans: [Span]
 
-    static let open: Character = "\u{E000}"
-    static let close: Character = "\u{E001}"
+    /// Unicode noncharacters: reserved for internal use, so real documents don't contain them
+    /// (private-use characters like U+E000 do appear: Powerline and Nerd Font glyphs).
+    /// (Swift rejects noncharacters in literals, so they are built from their scalar values.)
+    static let open = Character(Unicode.Scalar(0xFDD0 as UInt32)!)
+    static let close = Character(Unicode.Scalar(0xFDD1 as UInt32)!)
 
     /// Longest digit run a placeholder can contain (Int.max has 19 digits).
     static let maxIndexDigits = 19

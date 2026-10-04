@@ -9,6 +9,10 @@ public struct MarkdownOptions: Hashable, Sendable {
     public var singleDollarMath = true
     public var smartPunctuation = false
     public var hardBreaks = false
+    /// `==marked==` text.
+    public var highlight = true
+    /// YAML front matter at the top of the file shown as a table.
+    public var frontMatter = true
 
     public init() {}
 

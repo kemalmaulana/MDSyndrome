@@ -32,7 +32,9 @@ public struct DocumentStats: Hashable, Sendable {
         case .list(let list): list.items.reduce(0) { sum, item in item.blocks.reduce(sum) { $0 + wordCount($1) } }
         case .codeBlock(_, let code): count(code)
         case .table(let t): (t.header + t.rows.flatMap { $0 }).reduce(0) { $0 + count(Inline.plainText($1)) }
-        case .thematicBreak, .htmlBlock, .mathBlock: 0
+        case .details(let summary, _, let b): count(Inline.plainText(summary)) + b.reduce(0) { $0 + wordCount($1) }
+        case .htmlParagraph(_, _, let c): count(Inline.plainText(c))
+        case .thematicBreak, .htmlBlock, .mathBlock, .frontMatter: 0
         }
     }
 
