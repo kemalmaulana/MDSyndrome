@@ -61,6 +61,9 @@ public struct PreviewTheme: Codable, Hashable, Sendable {
     public var tableStripe: ThemeColor
     /// `==marked==` / `<mark>` background.
     public var highlightBackground: ThemeColor
+    /// Find in preview: every match, and the one the user is on.
+    public var searchMatchBackground: ThemeColor
+    public var searchCurrentBackground: ThemeColor
     /// LaTeX that could not be typeset, and similar inline errors.
     public var error: ThemeColor
     public var syntax: SyntaxPalette
@@ -88,6 +91,8 @@ public struct PreviewTheme: Codable, Hashable, Sendable {
         blockQuoteBar: ThemeColor(light: "#d1d9e0", dark: "#3d444d"),
         tableStripe: ThemeColor(light: "#f6f8fa", dark: "#151b23"),
         highlightBackground: ThemeColor(light: "#fff8c5", dark: "#bb800926"),
+        searchMatchBackground: ThemeColor(light: "#ffe58f", dark: "#9a6700b3"),
+        searchCurrentBackground: ThemeColor(light: "#ff9632", dark: "#d4a72c"),
         error: ThemeColor(light: "#d1242f", dark: "#f85149"),
         syntax: .github
     )
@@ -142,6 +147,9 @@ extension EnvironmentValues {
     @Entry public var previewTheme: PreviewTheme = .github
     /// Folder of the open document; relative image paths resolve against it. nil for unsaved documents.
     @Entry public var documentBaseURL: URL? = nil
+    /// Bumped when the user reloads the document from disk (⌘R). Images load again when it changes,
+    /// since the Markdown can stay the same while a picture on disk changed.
+    @Entry public var previewReloadToken: Int = 0
     @Entry var listDepth: Int = 0
     /// Horizontal alignment of HTML-authored blocks (`<p align="center">`), read by image rows.
     @Entry var blockAlignment: BlockAlignment = .leading

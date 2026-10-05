@@ -128,4 +128,46 @@ Hidden **Markdown** inside a `<details>` block.
 
 </details>
 
+## Plan 4: web renderers
+
+```mermaid
+flowchart LR
+    A[Write Markdown] --> B{Preview}
+    B -->|looks right| C[Ship it]
+    B -->|nope| A
+```
+
+```mermaid
+sequenceDiagram
+    participant You
+    participant MDSyndrome
+    You->>MDSyndrome: type a diagram
+    MDSyndrome-->>You: a sharp vector picture
+```
+
+```dot
+digraph G {
+    rankdir=LR;
+    editor -> parser -> preview;
+    parser -> outline [label="headings"];
+}
+```
+
+A formula SwiftMath can't typeset, $\operatorname{lcm}(a,b)=\frac{ab}{\gcd(a,b)}$, sits inline, and this one is a block:
+
+$$
+\begin{aligned} \operatorname{sin}^2 x + \cos^2 x &= 1 \\ e^{i\pi} + 1 &= 0 \end{aligned}
+$$
+
+<table>
+  <tr><th>Renderer</th><th>Used for</th></tr>
+  <tr><td>mermaid</td><td>flowcharts, sequence diagrams, …</td></tr>
+  <tr><td>viz.js</td><td>Graphviz <code>dot</code></td></tr>
+  <tr><td>KaTeX</td><td>math SwiftMath can't do</td></tr>
+</table>
+
+```mermaid
+this is not a diagram
+```
+
 [^note]: The footnote text.

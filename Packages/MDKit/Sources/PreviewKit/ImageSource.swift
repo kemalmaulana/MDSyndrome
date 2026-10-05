@@ -39,12 +39,16 @@ public enum ImageLoadError: LocalizedError, Equatable {
 public enum ImageLoader {
     /// Reads image bytes off the main actor. Remote loads go through
     /// `URLSession.shared`, whose `URLCache` gives memory + disk caching.
-    public static func data(for source: ImageSource) async throws -> Data {
+    /// - Parameter reload: true after the user reloaded the document, so a remote image is fetched again
+    ///   instead of coming from the cache.
+    public static func data(for source: ImageSource, reload: Bool = false) async throws -> Data {
         switch source {
         case .local(let url):
             return try await Task.detached(priority: .userInitiated) { try Data(contentsOf: url) }.value
         case .remote(let url):
-            let (data, response) = try await URLSession.shared.data(from: url)
+            var request = URLRequest(url: url)
+            if reload { request.cachePolicy = .reloadIgnoringLocalCacheData }
+            let (data, response) = try await URLSession.shared.data(for: request)
             if let http = response as? HTTPURLResponse, !(200..<300).contains(http.statusCode) {
                 throw ImageLoadError.http(http.statusCode)
             }

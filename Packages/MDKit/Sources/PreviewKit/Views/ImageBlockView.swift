@@ -8,7 +8,14 @@ struct ImageBlockView: View {
     var width: Double? = nil
     @Environment(\.documentBaseURL) private var baseURL
     @Environment(\.previewTheme) private var theme
+    @Environment(\.previewReloadToken) private var reloadToken
     @State private var phase: Phase = .loading
+
+    /// What a load depends on: the file or URL, and a reload request.
+    private struct LoadKey: Hashable {
+        let source: ImageSource
+        let reloadToken: Int
+    }
 
     enum Phase {
         case loading
@@ -34,10 +41,10 @@ struct ImageBlockView: View {
                     .help(reason)
             }
         }
-        .task(id: resolved) {
+        .task(id: LoadKey(source: resolved, reloadToken: reloadToken)) {
             phase = .loading
             do {
-                let data = try await ImageLoader.data(for: resolved)
+                let data = try await ImageLoader.data(for: resolved, reload: reloadToken > 0)
                 phase = NSImage(data: data).map(Phase.loaded) ?? .failed("Unsupported image format")
             } catch {
                 phase = .failed(error.localizedDescription)

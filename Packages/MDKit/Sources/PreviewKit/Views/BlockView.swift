@@ -1,11 +1,17 @@
 import MarkdownCore
 import SwiftUI
+import WebRenderKit
 
 struct BlockView: View {
     let block: Block
     @Environment(\.previewTheme) private var theme
 
     var body: some View {
+        content.environment(\.searchLine, block.lines.start)
+    }
+
+    @ViewBuilder
+    private var content: some View {
         switch block.kind {
         case .heading(let level, let content):
             HeadingView(level: level, content: content)
@@ -16,14 +22,15 @@ struct BlockView: View {
         case .list(let list):
             ListBlockView(list: list)
         case .codeBlock(let language, let code):
-            CodeBlockView(language: language, code: code)
+            if let diagram = DiagramLanguage.kind(of: language) {
+                DiagramBlockView(kind: diagram, language: language, code: code)
+            } else {
+                CodeBlockView(language: language, code: code)
+            }
         case .thematicBreak:
             Rectangle().fill(theme.border.color).frame(height: 2).padding(.vertical, 8)
         case .htmlBlock(let html):
-            Text(html)
-                .font(.system(size: theme.codeFontSize, design: .monospaced))
-                .foregroundStyle(theme.secondaryText.color)
-                .textSelection(.enabled)
+            RawHTMLBlockView(html: html)
         case .table(let table):
             TableBlockView(table: table)
         case .mathBlock(let latex):
@@ -48,7 +55,7 @@ struct HeadingView: View {
 
     var body: some View {
         VStack(alignment: alignment.horizontal, spacing: 6) {
-            InlineRenderer.text(content, theme: theme, fontSize: theme.headingSize(level: level))
+            InlineText(inlines: content, fontSize: theme.headingSize(level: level))
                 .font(.system(size: theme.headingSize(level: level), weight: .semibold))
                 .multilineTextAlignment(alignment.text)
                 .textSelection(.enabled)
@@ -90,7 +97,7 @@ struct InlineFlowView: View {
             MixedInlineFlow(content: content)
                 .environment(\.blockAlignment, alignment)
         } else {
-            InlineRenderer.text(content, theme: theme)
+            InlineText(inlines: content)
                 .lineSpacing(theme.lineSpacing)
                 .multilineTextAlignment(alignment.text)
                 .textSelection(.enabled)
@@ -210,10 +217,13 @@ struct FootnoteView: View {
     }
 }
 
-/// `$$ … $$` and ```` ```math ```` blocks, typeset natively and centred.
+/// `$$ … $$` and ```` ```math ```` blocks, typeset natively and centred. A formula SwiftMath rejects is
+/// drawn by KaTeX when a renderer is available; if that fails too, its source is shown in red.
 struct MathBlockView: View {
     let latex: String
     @Environment(\.previewTheme) private var theme
+    @Environment(\.webRenderer) private var renderer
+    @Environment(\.colorScheme) private var scheme
 
     var body: some View {
         switch MathRenderer.render(latex, fontSize: theme.bodyFontSize * 1.2, display: true) {
@@ -228,15 +238,56 @@ struct MathBlockView: View {
             }
             .padding(.vertical, 4)
         case .failure(.syntax(let message)):
-            VStack(alignment: .leading, spacing: 4) {
-                Label(message, systemImage: "exclamationmark.triangle")
-                    .font(.caption)
-                Text(latex)
-                    .font(.system(size: theme.codeFontSize, design: .monospaced))
-                    .textSelection(.enabled)
+            if renderer != nil {
+                RenderedPicture(request: katexRequest, accessibilityLabel: latex, alignment: .center, placeholderHeight: 36) { error in
+                    failure(message: katexMessage(error) ?? message)
+                }
+                .padding(.vertical, 4)
+            } else {
+                failure(message: message)
             }
-            .foregroundStyle(theme.error.color)
-            .accessibilityLabel("LaTeX error: \(message)")
+        }
+    }
+
+    private var katexRequest: RenderRequest {
+        RenderRequest(kind: .katex(display: true), source: latex, appearance: RenderAppearance(scheme),
+                      foreground: theme.text.hex(for: scheme),
+                      background: theme.background.hex(for: scheme), fontSize: theme.bodyFontSize * 1.2)
+    }
+
+    /// KaTeX's message names the unsupported command more helpfully than SwiftMath's; ignore its own failures.
+    private func katexMessage(_ error: RenderError) -> String? {
+        if case .syntax = error { return error.summary }
+        return nil
+    }
+
+    private func failure(message: String) -> some View {
+        VStack(alignment: .leading, spacing: 4) {
+            Label(message, systemImage: "exclamationmark.triangle")
+                .font(.caption)
+            Text(latex)
+                .font(.system(size: theme.codeFontSize, design: .monospaced))
+                .textSelection(.enabled)
+        }
+        .foregroundStyle(theme.error.color)
+        .accessibilityLabel("LaTeX error: \(message)")
+    }
+}
+
+/// A raw HTML block: a picture when a renderer exists, otherwise (and on failure) its source.
+struct RawHTMLBlockView: View {
+    let html: String
+    @Environment(\.previewTheme) private var theme
+    @Environment(\.webRenderer) private var renderer
+
+    var body: some View {
+        if renderer != nil {
+            HTMLSnapshotView(html: html)
+        } else {
+            Text(html)
+                .font(.system(size: theme.codeFontSize, design: .monospaced))
+                .foregroundStyle(theme.secondaryText.color)
+                .textSelection(.enabled)
         }
     }
 }
@@ -289,7 +340,7 @@ struct DetailsView: View {
             .padding(.top, 8)
             .padding(.leading, 4)
         } label: {
-            InlineRenderer.text(summary, theme: theme)
+            InlineText(inlines: summary, slot: SearchRunKey.summarySlot)
         }
     }
 }

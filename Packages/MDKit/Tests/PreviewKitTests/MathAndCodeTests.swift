@@ -44,6 +44,16 @@ import Testing
         }
         #expect(first.image === second.image)
     }
+
+    @Test func theCacheStaysBoundedAndKeepsWorking() throws {
+        for index in 0..<700 { _ = MathRenderer.render("z_{\(index)}", fontSize: 11, display: false) }
+        guard case .success(let first) = MathRenderer.render("z_{699}", fontSize: 11, display: false),
+              case .success(let second) = MathRenderer.render("z_{699}", fontSize: 11, display: false) else {
+            Issue.record("render failed")
+            return
+        }
+        #expect(first.image === second.image, "the newest entries survive the clean-up")
+    }
 }
 
 extension Result<RenderedMath, MathRenderError> {

@@ -75,4 +75,96 @@ final class EditingFlowUITests: XCTestCase {
         app.typeKey("2", modifierFlags: [.command, .option])   // back to split
         XCTAssertEqual(editor.value as? String, "keep", "keystrokes in Preview mode must not reach the hidden editor")
     }
+
+    @MainActor
+    func testReturnContinuesAList() throws {
+        XCTAssertTrue(editor.waitForExistence(timeout: 10))
+        editor.click()
+        editor.typeText("- one\n")
+        XCTAssertEqual(editor.value as? String, "- one\n- ")
+    }
+
+    @MainActor
+    func testFormatShortcutWrapsTheSelection() throws {
+        XCTAssertTrue(editor.waitForExistence(timeout: 10))
+        editor.click()
+        editor.typeText("word")
+        app.typeKey("a", modifierFlags: .command)
+        app.typeKey("b", modifierFlags: .command)
+        XCTAssertEqual(editor.value as? String, "**word**")
+    }
+
+    @MainActor
+    func testTabIndentsAListItem() throws {
+        XCTAssertTrue(editor.waitForExistence(timeout: 10))
+        editor.click()
+        editor.typeText("- a")
+        app.typeKey(XCUIKeyboardKey.tab, modifierFlags: [])
+        XCTAssertEqual(editor.value as? String, "    - a")
+    }
+
+    @MainActor
+    func testBracketsPairUp() throws {
+        XCTAssertTrue(editor.waitForExistence(timeout: 10))
+        editor.click()
+        editor.typeText("(")
+        XCTAssertEqual(editor.value as? String, "()")
+    }
+
+    @MainActor
+    func testUndoUpdatesThePreview() throws {
+        XCTAssertTrue(editor.waitForExistence(timeout: 10))
+        editor.click()
+        editor.typeText("# Gone soon")
+        XCTAssertTrue(app.staticTexts["Gone soon"].waitForExistence(timeout: 5))
+        app.typeKey("z", modifierFlags: .command)
+        XCTAssertTrue(app.staticTexts["Gone soon"].waitForNonExistence(timeout: 5), "undo must reach the document, not only the text view")
+    }
+
+    @MainActor
+    func testFormatAndThemeMenusExist() throws {
+        XCTAssertTrue(editor.waitForExistence(timeout: 10))
+        app.menuBars.menuBarItems["Format"].click()
+        XCTAssertTrue(app.menuItems["Bold"].waitForExistence(timeout: 3))
+        app.typeKey(XCUIKeyboardKey.escape, modifierFlags: [])
+        app.menuBars.menuBarItems["View"].click()
+        XCTAssertTrue(app.menuItems["Editor Theme"].waitForExistence(timeout: 3))
+        app.typeKey(XCUIKeyboardKey.escape, modifierFlags: [])
+    }
+
+    @MainActor
+    func testFindShortcutOpensTheEditorFindBar() throws {
+        XCTAssertTrue(editor.waitForExistence(timeout: 10))
+        editor.click()
+        editor.typeText("find me")
+        app.typeKey("f", modifierFlags: .command)
+        XCTAssertTrue(app.searchFields.firstMatch.waitForExistence(timeout: 5), "⌘F in the editor opens its find bar")
+    }
+
+    @MainActor
+    func testFindInThePreviewCountsAndStepsThroughMatches() throws {
+        XCTAssertTrue(editor.waitForExistence(timeout: 10))
+        editor.click()
+        editor.typeText("# Needle\n\nA needle in a haystack with another needle.")
+        app.typeKey("3", modifierFlags: [.command, .option])   // preview only: Find goes to the preview
+        app.typeKey("f", modifierFlags: .command)
+        let field = app.textFields["preview-search-field"]
+        XCTAssertTrue(field.waitForExistence(timeout: 5))
+        field.typeText("needle")
+        XCTAssertTrue(app.staticTexts["1 of 3"].waitForExistence(timeout: 5))
+        app.typeKey("g", modifierFlags: .command)
+        XCTAssertTrue(app.staticTexts["2 of 3"].waitForExistence(timeout: 5))
+        app.typeKey(XCUIKeyboardKey.escape, modifierFlags: [])
+        XCTAssertTrue(field.waitForNonExistence(timeout: 5), "Esc closes the find bar")
+    }
+
+    @MainActor
+    func testMermaidFenceBecomesAPicture() throws {
+        XCTAssertTrue(editor.waitForExistence(timeout: 10))
+        editor.click()
+        editor.typeText("```mermaid\nflowchart LR\n  A --> B\n```")
+        // The first diagram starts the hidden web view, so give it time.
+        let picture = app.images.matching(NSPredicate(format: "label BEGINSWITH 'Diagram:'")).firstMatch
+        XCTAssertTrue(picture.waitForExistence(timeout: 30), "a mermaid fence is drawn as a picture in the preview")
+    }
 }

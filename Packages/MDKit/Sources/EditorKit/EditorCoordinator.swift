@@ -1,22 +1,31 @@
 import AppKit
 import SwiftUI
 
-/// Keeps an NSTextView and a SwiftUI String binding in sync without loops:
-/// user edits flow out through `textDidChange`; model changes flow in through
-/// `setText`, which never echoes back to the binding.
+/// Keeps a MarkdownTextView and a SwiftUI String binding in sync without loops: user edits flow out
+/// through `textDidChange`; model changes flow in through `setText`, which never echoes back to the
+/// binding. Also owns the syntax highlighter and applies the editor theme.
 @MainActor
 public final class EditorCoordinator: NSObject, NSTextViewDelegate {
     var text: Binding<String>
     public private(set) weak var textView: NSTextView?
+    private weak var scrollView: NSScrollView?
+    private var highlighter: EditorHighlighter?
     private var isApplyingExternalText = false
+    private var lastWrittenText: String?
+    /// Counts character edits; the binding is written once per count, whichever callback sees it first.
+    private var editCount = 0
+    private var syncedEditCount = 0
     private var appliedConfiguration: EditorConfiguration?
+    private var appliedTheme: EditorTheme?
 
     public init(text: Binding<String>) {
         self.text = text
     }
 
-    /// One-time setup of a fresh text view: plain text, undo, find bar, no "smart" substitutions.
-    public func attach(to textView: NSTextView, configuration: EditorConfiguration) {
+    /// One-time setup of a fresh text view: plain text, undo, find bar, no "smart" substitutions,
+    /// syntax highlighting, and the theme.
+    func attach(to textView: MarkdownTextView, scrollView: NSScrollView? = nil, theme: EditorTheme,
+                configuration: EditorConfiguration, controller: EditorController? = nil) {
         textView.isRichText = false
         textView.importsGraphics = false
         textView.allowsUndo = true
@@ -26,31 +35,76 @@ public final class EditorCoordinator: NSObject, NSTextViewDelegate {
         textView.isAutomaticDashSubstitutionEnabled = false
         textView.isAutomaticTextReplacementEnabled = false
         textView.isAutomaticSpellingCorrectionEnabled = false
+        textView.isAutomaticLinkDetectionEnabled = false
         textView.setAccessibilityIdentifier("markdown-editor")
         textView.delegate = self
         self.textView = textView
-        apply(configuration)
+        self.scrollView = scrollView
+        controller?.textView = textView
+        textView.onActivity = { [weak controller] in controller?.onFocus?() }
+
+        let highlighter = EditorHighlighter(theme: theme, configuration: configuration)
+        self.highlighter = highlighter
+        textView.lineStateProvider = { [weak highlighter] location in highlighter?.lineState(at: location) }
+        // Undo and redo change the text without telling the text view's delegate, so the binding is
+        // fed from the text storage, which sees every change.
+        highlighter.onCharactersChanged = { [weak self] in self?.storageDidChange() }
+        if let storage = textView.textStorage { highlighter.attach(to: storage) }
+        apply(theme: theme, configuration: configuration, force: true)
     }
 
-    public func apply(_ configuration: EditorConfiguration) {
-        guard let textView, configuration != appliedConfiguration else { return }
+    /// Applies the theme and configuration; re-colours only when something visual changed.
+    func apply(theme: EditorTheme, configuration: EditorConfiguration, force: Bool = false) {
+        guard let textView = textView as? MarkdownTextView, let highlighter else { return }
+        textView.behavior = configuration
+        let inset = NSSize(width: configuration.horizontalInset, height: configuration.verticalInset)
+        if textView.textContainerInset != inset { textView.textContainerInset = inset }   // SwiftUI calls this on every keystroke
+
+        let restyle = force || theme != appliedTheme || appliedConfiguration.map { Self.visuallyDiffers($0, configuration) } ?? true
         appliedConfiguration = configuration
-        textView.font = configuration.font
+        appliedTheme = theme
+        guard restyle else { return }
+
+        textView.backgroundColor = editorColor(theme.background) ?? .textBackgroundColor
+        textView.drawsBackground = true
+        textView.insertionPointColor = editorColor(theme.caret) ?? .textColor
+        var selected: [NSAttributedString.Key: Any] = [:]
+        if let background = editorColor(theme.selectionBackground) { selected[.backgroundColor] = background }
+        if let foreground = editorColor(theme.selectionForeground) { selected[.foregroundColor] = foreground }
+        textView.selectedTextAttributes = selected.isEmpty ? [.backgroundColor: NSColor.selectedTextBackgroundColor] : selected
+        if let scrollView {
+            scrollView.backgroundColor = editorColor(theme.background) ?? .textBackgroundColor
+            scrollView.drawsBackground = true
+            // Scrollers and the find bar should match a dark theme even in a light system appearance.
+            scrollView.appearance = NSAppearance(named: theme.isDark ? .darkAqua : .aqua)
+        }
+
+        highlighter.theme = theme
+        highlighter.configuration = configuration
         textView.defaultParagraphStyle = configuration.paragraphStyle
-        textView.typingAttributes = configuration.textAttributes
-        textView.textContainerInset = NSSize(width: configuration.horizontalInset, height: configuration.verticalInset)
-        restyleAll()
+        textView.typingAttributes = configuration.textAttributes(foreground: editorColor(theme.foreground) ?? .textColor)
+        highlighter.restyleAll()
+    }
+
+    private static func visuallyDiffers(_ a: EditorConfiguration, _ b: EditorConfiguration) -> Bool {
+        a.fontName != b.fontName || a.fontSize != b.fontSize || a.lineSpacing != b.lineSpacing
     }
 
     /// Replaces the text view's content when the model changed from outside (file load, revert).
     public func setText(_ newValue: String) {
-        guard let textView, textView.string != newValue else { return }
+        guard let textView else { return }
+        // The binding usually hands back the very string we wrote; String == short-circuits on identity.
+        if let lastWrittenText, lastWrittenText == newValue { return }
+        guard textView.string != newValue else { return }
         isApplyingExternalText = true
         defer { isApplyingExternalText = false }
         let length = (newValue as NSString).length
         let selection = textView.selectedRange()
         textView.string = newValue
-        restyleAll()
+        lastWrittenText = nil
+        // The text was replaced behind the undo stack's back (file reload, revert). Its entries point at
+        // ranges of the old text and could cut the new text in the wrong place, so drop them.
+        textView.undoManager?.removeAllActions()
         textView.setSelectedRange(NSRange(location: min(selection.location, length), length: 0))
     }
 
@@ -69,7 +123,19 @@ public final class EditorCoordinator: NSObject, NSTextViewDelegate {
     }
 
     public func textDidChange(_ notification: Notification) {
-        guard !isApplyingExternalText, let textView = notification.object as? NSTextView else { return }
+        syncBinding()
+    }
+
+    private func storageDidChange() {
+        guard !isApplyingExternalText else { return }
+        editCount += 1
+        syncBinding()
+    }
+
+    /// Writes the text view's content to the binding if it changed since the last write.
+    private func syncBinding() {
+        guard !isApplyingExternalText, let textView, editCount != syncedEditCount else { return }
+        syncedEditCount = editCount
         // NSTextView already registered a coalesced "Typing" undo action. A
         // SwiftUI FileDocument binding write would register a second,
         // per-keystroke action on the same undo manager, so ⌘Z would remove a
@@ -77,11 +143,13 @@ public final class EditorCoordinator: NSObject, NSTextViewDelegate {
         let undoManager = textView.undoManager
         undoManager?.disableUndoRegistration()
         defer { undoManager?.enableUndoRegistration() }
-        text.wrappedValue = textView.string
+        let current = textView.string
+        lastWrittenText = current
+        text.wrappedValue = current
     }
 
-    private func restyleAll() {
-        guard let textView, let storage = textView.textStorage, let configuration = appliedConfiguration else { return }
-        storage.setAttributes(configuration.textAttributes, range: NSRange(location: 0, length: storage.length))
+    /// Finishes colouring a long document right away (tests; the run loop does it otherwise).
+    func finishHighlighting() {
+        highlighter?.finishPending()
     }
 }
