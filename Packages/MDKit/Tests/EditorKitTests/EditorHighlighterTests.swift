@@ -69,7 +69,7 @@ private struct SplitMix64 {
 }
 
 @MainActor
-private func make(_ text: String, theme: EditorTheme = .tomorrowPlus, maxLines: Int = 1500) -> (NSTextStorage, EditorHighlighter) {
+private func make(_ text: String, theme: EditorTheme = .tomorrowPlus, maxLines: Int = 400) -> (NSTextStorage, EditorHighlighter) {
     let storage = NSTextStorage(string: text)
     let highlighter = EditorHighlighter(theme: theme, configuration: .macDownDefaults)
     highlighter.maxLinesPerPass = maxLines

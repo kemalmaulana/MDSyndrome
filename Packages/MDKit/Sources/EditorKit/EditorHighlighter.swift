@@ -14,7 +14,7 @@ public final class EditorHighlighter: NSObject, NSTextStorageDelegate {
     public var configuration: EditorConfiguration { didSet { styleSheet = nil } }
 
     /// Lines coloured before yielding to the run loop.
-    public var maxLinesPerPass = 1500
+    public var maxLinesPerPass = 400
 
     /// Called after every change to the characters (typing, paste, undo, programmatic edits), once the
     /// colouring has caught up. The coordinator uses it to keep the document model in step.

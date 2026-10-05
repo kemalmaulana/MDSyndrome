@@ -56,7 +56,8 @@ public final class EditorCoordinator: NSObject, NSTextViewDelegate {
     func apply(theme: EditorTheme, configuration: EditorConfiguration, force: Bool = false) {
         guard let textView = textView as? MarkdownTextView, let highlighter else { return }
         textView.behavior = configuration
-        textView.textContainerInset = NSSize(width: configuration.horizontalInset, height: configuration.verticalInset)
+        let inset = NSSize(width: configuration.horizontalInset, height: configuration.verticalInset)
+        if textView.textContainerInset != inset { textView.textContainerInset = inset }   // SwiftUI calls this on every keystroke
 
         let restyle = force || theme != appliedTheme || appliedConfiguration.map { Self.visuallyDiffers($0, configuration) } ?? true
         appliedConfiguration = configuration
