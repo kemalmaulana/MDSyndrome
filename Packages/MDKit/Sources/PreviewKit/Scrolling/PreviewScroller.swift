@@ -8,6 +8,8 @@ import SwiftUI
 /// at any distance, as long as it is not animated (an animated long jump lands a few blocks off). Reading is done
 /// with `onScrollTargetVisibilityChange`; the `scrollPosition` binding only ever holds what was last written, so it
 /// is never read. `onScrollPhaseChange` tells the user's scrolling from our own jumps, which report no phase.
+/// The visibility callback is reliable while the user scrolls but not right after a jump, which is why `topBlock`
+/// takes the target of a jump to the top as it is.
 @MainActor
 @Observable
 public final class PreviewScroller {
@@ -37,6 +39,9 @@ public final class PreviewScroller {
         var transaction = Transaction(animation: nil)
         transaction.disablesAnimations = true
         withTransaction(transaction) { jump?(id, anchor) }
+        // The visibility callback is not reliable right after a jump (it can report nothing, or an in-between
+        // state), so a jump to the top says where the top is.
+        if anchor == .top, topBlock != id { topBlock = id }
     }
 
     // MARK: From the view

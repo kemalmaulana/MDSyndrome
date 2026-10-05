@@ -11,6 +11,9 @@ final class DocumentSession {
     private(set) var rendered: RenderedDocument = .empty
     /// How many renders have been published. Used by tests.
     private(set) var renderCount = 0
+    /// True when `rendered` is the parse of the latest text: no edit is waiting for its render. A click in the
+    /// preview that refers to source lines (a task checkbox) is only safe then.
+    var isCurrent: Bool { renderedGeneration == generation }
     var options: MarkdownOptions
 
     @ObservationIgnored private let debounce: Duration
@@ -19,6 +22,7 @@ final class DocumentSession {
     /// Bumped on every render request; a finished render is published only if it is still the latest.
     /// This also covers `renderNow`, whose task is not the cancellable `pending` one.
     @ObservationIgnored private var generation = 0
+    @ObservationIgnored private var renderedGeneration = 0
 
     init(
         options: MarkdownOptions = .default,
@@ -55,6 +59,7 @@ final class DocumentSession {
         let result = await Task.detached(priority: .userInitiated) { renderer(text, options) }.value
         guard request == generation else { return }
         rendered = result
+        renderedGeneration = request
         renderCount += 1
     }
 }

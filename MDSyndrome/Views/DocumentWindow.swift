@@ -15,6 +15,10 @@ struct DocumentWindow: View {
     /// Bumped by ⌘R so the preview reads its images from disk again.
     @State private var previewReloadToken = 0
     @State private var previewSearch = PreviewSearch()
+    @State private var previewScroller = PreviewScroller()
+    /// Keeps the two panes at the same place in the document.
+    @State private var sync = SyncScrollCoordinator()
+    @AppStorage("syncScroll") private var syncScroll = true
     /// Where Find goes in the split layout: the pane the user clicked or typed in last.
     @State private var activePane: Pane = .editor
     @SceneStorage("layoutMode") private var layoutMode: LayoutMode = .split
@@ -30,7 +34,7 @@ struct DocumentWindow: View {
                                    isHidden: !editorIsVisible, controller: editor)
             } preview: {
                 MarkdownPreview(rendered: session.rendered, baseURL: fileURL?.deletingLastPathComponent(), reloadToken: previewReloadToken,
-                                search: layoutMode == .editor ? nil : previewSearch, webRenderer: webRenderer,
+                                search: layoutMode == .editor ? nil : previewSearch, webRenderer: webRenderer, scroller: previewScroller,
                                 linkHandler: { LinkOpener.handle($0, window: NSApp.keyWindow) })
                     .simultaneousGesture(TapGesture().onEnded { activePane = .preview })
             }
@@ -48,8 +52,20 @@ struct DocumentWindow: View {
         .focusedSceneValue(\.reloadDocument, fileURL == nil ? nil : DocumentAction(run: reloadFromDisk))
         .onAppear {
             let pane = $activePane
-            editor.onFocus = { if pane.wrappedValue != .editor { pane.wrappedValue = .editor } }
+            let sync = sync
+            editor.onFocus = {
+                if pane.wrappedValue != .editor { pane.wrappedValue = .editor }
+                sync.editorActivity()
+            }
+            sync.attach(editor: editor, preview: previewScroller)
+            sync.isEnabled = syncScroll
+            previewScroller.onNavigate = { [weak sync] id in sync?.navigate(to: id) }
         }
+        .onChange(of: syncScroll) { _, enabled in sync.isEnabled = enabled }
+        .onChange(of: layoutMode, initial: true) { _, mode in
+            sync.layoutDidChange(editorVisible: mode != .preview, previewVisible: mode != .editor)
+        }
+        .onChange(of: session.renderCount, initial: true) { _, _ in sync.renderDidChange(session.rendered.sourceMap) }
         .onChange(of: previewSearch.isPresented) { _, isPresented in if isPresented { activePane = .preview } }
         .onChange(of: layoutMode) { _, mode in if mode == .editor { previewSearch.close() } }
         .task { await session.renderNow(document.text) }
