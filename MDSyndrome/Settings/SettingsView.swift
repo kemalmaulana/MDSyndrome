@@ -43,6 +43,7 @@ private struct EditorSettings: View {
     @AppStorage(SettingsKey.editorLineSpacing) private var lineSpacing = 3.0
     @AppStorage(SettingsKey.editorHorizontalInset) private var horizontalInset = 15.0
     @AppStorage(SettingsKey.editorVerticalInset) private var verticalInset = 30.0
+    @AppStorage(SettingsKey.editorMaxTextWidth) private var maxTextWidth = 0.0
     @AppStorage(SettingsKey.editorSoftWrap) private var softWrap = true
     @AppStorage(SettingsKey.editorSpellCheck) private var spellCheck = false
     @AppStorage(SettingsKey.editorUseTabs) private var useTabs = false
@@ -69,6 +70,8 @@ private struct EditorSettings: View {
                 Stepper("Side margin: \(Int(horizontalInset)) pt", value: $horizontalInset, in: 0...200, step: 5)
                 Stepper("Top margin: \(Int(verticalInset)) pt", value: $verticalInset, in: 0...200, step: 5)
                 Toggle("Wrap long lines", isOn: $softWrap)
+                Stepper(maxTextWidth == 0 ? "Text width: whole window" : "Text width: \(Int(maxTextWidth)) pt", value: $maxTextWidth, in: 0...2_000, step: 20)
+                    .disabled(!softWrap)
                 Toggle("Check spelling while typing", isOn: $spellCheck)
             }
             Section("Typing") {

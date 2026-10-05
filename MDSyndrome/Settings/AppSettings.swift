@@ -15,6 +15,8 @@ enum SettingsKey {
     static let editorLineSpacing = "editorLineSpacing"
     static let editorHorizontalInset = "editorHorizontalInset"
     static let editorVerticalInset = "editorVerticalInset"
+    /// 0 uses the whole window width.
+    static let editorMaxTextWidth = "editorMaxTextWidth"
     static let editorSoftWrap = "editorSoftWrap"
     static let editorSpellCheck = "editorSpellCheck"
     static let editorUseTabs = "editorUseTabs"
@@ -91,6 +93,7 @@ struct AppSettings: Equatable {
         editor.lineSpacing = min(max(double(SettingsKey.editorLineSpacing, editor.lineSpacing), 0), 20)
         editor.horizontalInset = min(max(double(SettingsKey.editorHorizontalInset, editor.horizontalInset), 0), 200)
         editor.verticalInset = min(max(double(SettingsKey.editorVerticalInset, editor.verticalInset), 0), 200)
+        editor.maxTextWidth = min(max(double(SettingsKey.editorMaxTextWidth, 0), 0), 4_000)
         editor.softWrap = bool(SettingsKey.editorSoftWrap, editor.softWrap)
         editor.spellCheck = bool(SettingsKey.editorSpellCheck, editor.spellCheck)
         editor.autoPair = bool(SettingsKey.editorAutoPair, editor.autoPair)

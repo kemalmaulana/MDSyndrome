@@ -7,6 +7,8 @@ public struct EditorConfiguration: Hashable, Sendable {
     public var lineSpacing: Double = 3
     public var horizontalInset: Double = 15
     public var verticalInset: Double = 30
+    /// Text is kept this wide (points) and centred when the window is wider; 0 uses the whole width (ED-4).
+    public var maxTextWidth: Double = 0
 
     /// Typing `(` inserts `()`, `"` inserts `""`, and so on (ED-7).
     public var autoPair = true
