@@ -7,11 +7,14 @@ public struct MarkdownPreview: View {
     private let rendered: RenderedDocument
     private let baseURL: URL?
     private let theme: PreviewTheme
+    private let reloadToken: Int
 
-    public init(rendered: RenderedDocument, baseURL: URL?, theme: PreviewTheme = .github) {
+    /// - Parameter reloadToken: change it to make images load again (the document was reloaded from disk).
+    public init(rendered: RenderedDocument, baseURL: URL?, theme: PreviewTheme = .github, reloadToken: Int = 0) {
         self.rendered = rendered
         self.baseURL = baseURL
         self.theme = theme
+        self.reloadToken = reloadToken
     }
 
     public var body: some View {
@@ -31,6 +34,7 @@ public struct MarkdownPreview: View {
         .background(theme.background.color)
         .environment(\.previewTheme, theme)
         .environment(\.documentBaseURL, baseURL)
+        .environment(\.previewReloadToken, reloadToken)
         .environment(\.openURL, OpenURLAction { url in
             LinkPolicy.decision(for: url) == .openExternally ? .systemAction : .discarded
         })

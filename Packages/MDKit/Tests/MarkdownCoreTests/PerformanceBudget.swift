@@ -1,10 +1,10 @@
 import Foundation
 
 extension Duration {
-    /// A wall-clock budget for performance tests. GitHub's macOS runners are slower and run the
-    /// parallel tests on few cores, so CI gets 5× headroom — still far below what a quadratic
-    /// regression costs (tens of seconds to minutes on these inputs).
+    /// A wall-clock budget for performance tests. These run in a debug build next to other parallel tests
+    /// (and, on a busy Mac, next to Xcode), so locally they get 3× the nominal time and GitHub's slower
+    /// macOS runners 5×. A quadratic regression still costs tens of seconds to minutes on these inputs.
     static func budget(_ seconds: Double) -> Duration {
-        .seconds(ProcessInfo.processInfo.environment["CI"] == nil ? seconds : seconds * 5)
+        .seconds(seconds * (ProcessInfo.processInfo.environment["CI"] == nil ? 3 : 5))
     }
 }

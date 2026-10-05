@@ -68,4 +68,12 @@ extension Trait where Self == ConditionTrait {
         #expect(byTitle["Find and Replace…"] == "f")
         #expect(byTitle["Jump to Selection"] == "j")
     }
+
+    @Test func theFileMenuHasReloadFromDisk() async throws {
+        let menu = try await menuBar()
+        let file = try #require(menu.items.first { $0.title == "File" }?.submenu)
+        let reload = try #require(file.items.first { $0.title == "Reload from Disk" })
+        #expect(reload.keyEquivalent == "r")
+        #expect(reload.keyEquivalentModifierMask.contains(.command))
+    }
 }

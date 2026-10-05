@@ -49,7 +49,7 @@ It runs natively on Apple Silicon, has no Electron, and renders its preview nati
 | "Where did my badges go?" | Relative, absolute and remote images, SVG included | ✅ |
 | "Is this file going to do something weird?" | No script in a document ever runs. Links only open for `http(s)` and `mailto`. A file nested 5,000 levels deep won't crash it | ✅ |
 | "How long is this thing?" | Live words, characters, lines and reading time | ✅ |
-| "Documents just work" | New, Open, Recent, autosave, Versions, tabs, undo that behaves | ✅ |
+| "Documents just work" | New, Open, Recent, autosave, Versions, tabs, undo that behaves. A file another program saved is picked up when you come back to the app, or on <kbd>⌘R</kbd> | ✅ |
 | `$E = mc^2$` | Native LaTeX math, inline and display (SwiftMath). A formula it can't typeset shows its source in red | ✅ v0.2 |
 | ```` ```swift ```` | Syntax-highlighted code blocks in 20+ languages, GitHub colours in light and dark | ✅ v0.2 |
 | "My README looks broken" | `<p align="center">`, `<img width>`, badge rows, `<details>`, `<kbd>`, `<sub>`/`<sup>` and YAML front matter render natively | ✅ v0.2 |
@@ -88,7 +88,7 @@ make run
 | Command | What it does |
 |---|---|
 | `make run` | Generate the Xcode project, build Debug, launch the app |
-| `make test` | Lint + package tests (`swift test`) + app unit tests: 299 tests |
+| `make test` | Lint + package tests (`swift test`) + app unit tests: 307 tests |
 | `make test-ui` | 12 UI tests that drive the real app. ⚠️ They take over keyboard and mouse for about a minute |
 | `make dist VERSION=1.2.3` | Universal Release build → `dist/` with `.zip`, `.dmg` and `SHA256SUMS.txt` |
 | `make gen` | Regenerate `MDSyndrome.xcodeproj` from `project.yml` (the project file is never committed) |
@@ -147,6 +147,7 @@ outputs images.
 |---|---|
 | <kbd>⌥⌘1</kbd> · <kbd>⌥⌘2</kbd> · <kbd>⌥⌘3</kbd> | Editor only · Editor & Preview · Preview only |
 | <kbd>⌘N</kbd> · <kbd>⌘O</kbd> · <kbd>⌘S</kbd> | New · Open · Save |
+| <kbd>⌘R</kbd> | Reload from Disk: read the file again, images included (asks first if you have unsaved edits) |
 | <kbd>⌘F</kbd> | Find & replace in the editor |
 | <kbd>⌘B</kbd> · <kbd>⌘I</kbd> · <kbd>⌘E</kbd> · <kbd>⌘K</kbd> | Bold · Italic · Inline code · Link |
 | <kbd>⇧⌘X</kbd> · <kbd>⇧⌘H</kbd> · <kbd>⇧⌘E</kbd> · <kbd>⇧⌘I</kbd> | Strikethrough · Highlight · Code block · Image |

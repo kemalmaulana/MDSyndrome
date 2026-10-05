@@ -142,6 +142,9 @@ extension EnvironmentValues {
     @Entry public var previewTheme: PreviewTheme = .github
     /// Folder of the open document; relative image paths resolve against it. nil for unsaved documents.
     @Entry public var documentBaseURL: URL? = nil
+    /// Bumped when the user reloads the document from disk (⌘R). Images load again when it changes,
+    /// since the Markdown can stay the same while a picture on disk changed.
+    @Entry public var previewReloadToken: Int = 0
     @Entry var listDepth: Int = 0
     /// Horizontal alignment of HTML-authored blocks (`<p align="center">`), read by image rows.
     @Entry var blockAlignment: BlockAlignment = .leading

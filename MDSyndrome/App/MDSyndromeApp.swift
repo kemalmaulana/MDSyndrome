@@ -7,6 +7,7 @@ struct MDSyndromeApp: App {
             DocumentWindow(document: file.$document, fileURL: file.fileURL)
         }
         .commands {
+            FileCommands()
             ViewCommands()
             FormatCommands()
             FindCommands()
