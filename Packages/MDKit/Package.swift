@@ -9,6 +9,7 @@ let package = Package(
         .library(name: "PreviewKit", targets: ["PreviewKit"]),
         .library(name: "EditorKit", targets: ["EditorKit"]),
         .library(name: "SyntaxHighlighting", targets: ["SyntaxHighlighting"]),
+        .library(name: "WebRenderKit", targets: ["WebRenderKit"]),
     ],
     dependencies: [
         // gfm branch, pinned to an exact commit so app and package builds are reproducible.
@@ -22,11 +23,15 @@ let package = Package(
             .product(name: "cmark-gfm-extensions", package: "swift-cmark"),
         ]),
         .testTarget(name: "MarkdownCoreTests", dependencies: ["MarkdownCore"]),
-        .target(name: "PreviewKit", dependencies: ["MarkdownCore", "SyntaxHighlighting", .product(name: "SwiftMath", package: "SwiftMath")]),
+        .target(name: "PreviewKit", dependencies: ["MarkdownCore", "SyntaxHighlighting", "WebRenderKit", .product(name: "SwiftMath", package: "SwiftMath")]),
         .testTarget(name: "PreviewKitTests", dependencies: ["PreviewKit"]),
         .target(name: "EditorKit"),
         .testTarget(name: "EditorKitTests", dependencies: ["EditorKit"]),
         .target(name: "SyntaxHighlighting"),
         .testTarget(name: "SyntaxHighlightingTests", dependencies: ["SyntaxHighlighting"]),
+        // The only target that imports WebKit (PRD NF-1). The vendored mermaid, viz.js and KaTeX are in Resources
+        // (see VENDORED.md); `.copy` keeps the folder layout the bundled page and the KaTeX CSS rely on.
+        .target(name: "WebRenderKit", resources: [.copy("Resources")]),
+        .testTarget(name: "WebRenderKitTests", dependencies: ["WebRenderKit"]),
     ]
 )

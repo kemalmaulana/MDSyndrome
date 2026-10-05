@@ -1,0 +1,16 @@
+<!doctype html>
+<html>
+<head>
+<meta charset="utf-8">
+<!-- Locked down: no network, scripts only from the app bundle (file:), no inline scripts. wasm-unsafe-eval is for viz.js. -->
+<meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src file: 'wasm-unsafe-eval'; style-src file: 'unsafe-inline'; font-src file:; img-src data:">
+<link rel="stylesheet" href="katex/katex.min.css">
+<style>
+  html, body { margin: 0; padding: 0; background: transparent; }
+  #stage { display: inline-block; margin: 0; padding: 0; }
+  .katex-display { margin: 0; }
+</style>
+<script src="bridge.js"></script>
+</head>
+<body><div id="stage"></div></body>
+</html>

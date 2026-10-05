@@ -1,0 +1,4 @@
+# Vendored libraries: not reviewed line by line, and a diff of a minified bundle is useless.
+Packages/MDKit/Sources/WebRenderKit/Resources/mermaid.min.js linguist-vendored -diff
+Packages/MDKit/Sources/WebRenderKit/Resources/viz-global.js linguist-vendored -diff
+Packages/MDKit/Sources/WebRenderKit/Resources/katex/** linguist-vendored -diff
