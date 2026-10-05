@@ -89,7 +89,7 @@ make run
 | Command | What it does |
 |---|---|
 | `make run` | Generate the Xcode project, build Debug, launch the app |
-| `make test` | Lint + package tests (`swift test`) + app unit tests: 586 tests |
+| `make test` | Lint + package tests (`swift test`) + app unit tests (the suite is brought up to date for v0.6–v0.7 in Plan 8) |
 | `make test-ui` | 18 UI tests that drive the real app. ⚠️ They take over keyboard and mouse for about a minute |
 | `make dist VERSION=1.2.3` | Universal Release build → `dist/` with `.zip`, `.dmg` and `SHA256SUMS.txt` |
 | `make gen` | Regenerate `MDSyndrome.xcodeproj` from `project.yml` (the project file is never committed) |
@@ -111,11 +111,11 @@ flowchart LR
 | Module | Organ | Job |
 |---|---|---|
 | [`MarkdownCore`](Packages/MDKit/Sources/MarkdownCore) | 🧠 brain | Wraps cmark-gfm's C API into an immutable `Sendable` AST. Each block has a stable ID and the source lines it came from. Also protects math, builds heading slugs, the outline, the anchors and a source-line ↔ block map, and the stats |
-| [`PreviewKit`](Packages/MDKit/Sources/PreviewKit) | 👁 eyes | One SwiftUI view per block, the GitHub light/dark theme, image loading and link safety |
+| [`PreviewKit`](Packages/MDKit/Sources/PreviewKit) | 👁 eyes | One SwiftUI view per block, four preview themes, image loading, link safety, and the HTML and PDF exporters |
 | [`EditorKit`](Packages/MDKit/Sources/EditorKit) | ✋ hands | An NSTextView on TextKit 2: live Markdown highlighting, themes, the pure edit transforms behind list continuation and the Format menu, and one-step undo that reaches the document |
 | [`WebRenderKit`](Packages/MDKit/Sources/WebRenderKit) | 🔭 lens | The only module that imports WebKit. Draws diagrams, KaTeX formulas and complex HTML in hidden, locked-down web views and returns vector pictures, with a cache, one request at a time, a timeout, and recovery if the web process dies |
 | [`SyntaxHighlighting`](Packages/MDKit/Sources/SyntaxHighlighting) | 🎨 colour | The table-driven code lexer the preview uses for fenced code blocks: linear time, no dependencies |
-| [`MDSyndrome`](MDSyndrome) | 🫀 heart | `DocumentGroup`, the debounced render session, the split layout and commands |
+| [`MDSyndrome`](MDSyndrome) | 🫀 heart | `DocumentGroup`, the debounced render session, the split layout, the Settings window, user themes, export and commands |
 
 ```text
 .
@@ -136,7 +136,7 @@ outputs images.
 
 | | Swift / native | JavaScript |
 |---|---|---|
-| Parsing, preview, scrolling, export | ✅ always | never |
+| Parsing, preview, scrolling, settings, export | ✅ always | never |
 | Code highlighting | ✅ built-in lexer | never |
 | LaTeX math | ✅ SwiftMath | KaTeX only for expressions SwiftMath can't handle |
 | Mermaid, Graphviz | — | ✅ no native implementation exists |
@@ -177,6 +177,8 @@ A document with no diagram, no unusual formula and no complex HTML never starts 
 | <kbd>⌘Z</kbd> | Undo the last typed run, not one letter at a time |
 
 The divider between the panes can be dragged, and every window remembers its layout.
+
+> **Known gaps in v0.7:** Mermaid, Graphviz and KaTeX-fallback figures export as their source rather than as pictures, and images that load asynchronously may be missing from the PDF.
 
 ## 🗺 Treatment plan
 
