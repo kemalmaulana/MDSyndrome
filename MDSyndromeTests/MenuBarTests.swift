@@ -57,6 +57,16 @@ extension Trait where Self == ConditionTrait {
         #expect(titles.contains("Outdent"))
     }
 
+    @Test func theViewMenuHasTheOutlineAndTheScrollSwitch() async throws {
+        let menu = try await menuBar()
+        let view = try #require(menu.items.first { $0.title == "View" }?.submenu)
+        let outline = try #require(view.items.first { $0.title.hasSuffix("Outline") })
+        #expect(outline.keyEquivalent == "s")
+        #expect(outline.keyEquivalentModifierMask.intersection([.command, .option, .shift, .control]) == [.command, .control])
+        let sync = try #require(view.items.first { $0.title == "Scroll Editor and Preview Together" })
+        #expect(sync.keyEquivalent.isEmpty, "a switch, not a shortcut")
+    }
+
     @Test func theEditMenuHasFindWithTheStandardShortcuts() async throws {
         let menu = try await menuBar()
         let edit = try #require(menu.items.first { $0.title == "Edit" }?.submenu)
