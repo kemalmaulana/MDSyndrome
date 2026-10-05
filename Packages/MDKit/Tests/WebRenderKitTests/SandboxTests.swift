@@ -183,6 +183,29 @@ import WebKit
         #expect(state as? String == #"{"pwned":true,"handlers":0,"scripts":0,"jsLinks":0}"#, "\(String(describing: state))")
     }
 
+    /// A diagram can carry its own configuration (`%%{init: …}%%`). Mermaid protects a few keys from it; this
+    /// pins that `securityLevel` is one of them, so a document cannot switch label sanitising off.
+    @Test func aDocumentCannotLoosenMermaidsSecurityLevel() async throws {
+        let host = try await ScriptHost.start()
+        defer { host.invalidate() }
+        let source = """
+        %%{init: {"securityLevel": "loose", "flowchart": {"htmlLabels": true}}}%%
+        flowchart LR
+          A["<img src=x onerror='window.__pwned=1'>"] --> B
+        """
+        _ = try? await host.render(RenderRequest(kind: .mermaid, source: source))
+        await settle()
+        let state = try await page(host, """
+            const stage = document.getElementById('stage');
+            return JSON.stringify({
+              level: mermaid.mermaidAPI.getConfig().securityLevel,
+              pwned: window.__pwned === undefined,
+              handlers: stage.querySelectorAll('[onerror],[onclick],[onload]').length,
+            });
+        """)
+        #expect(state as? String == #"{"level":"strict","pwned":true,"handlers":0}"#, "\(String(describing: state))")
+    }
+
     @Test func katexRefusesLinksAndIncludedFiles() async throws {
         let server = try LocalServer()
         let port = try await server.start()
