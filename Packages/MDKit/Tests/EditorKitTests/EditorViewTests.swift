@@ -84,6 +84,17 @@ private final class EditorHarness {
         #expect(editor.textView.selectedRange() == NSRange(location: 5, length: 0))
     }
 
+    @Test func replacingTheTextFromOutsideDropsStaleUndoSteps() {
+        let editor = EditorHarness("short")
+        editor.textView.setSelectedRange(NSRange(location: 5, length: 0))
+        editor.type(" and a lot more typed text")
+        #expect(editor.textView.undoManager?.canUndo == true)
+        editor.coordinator.setText("new")
+        #expect(editor.textView.undoManager?.canUndo == false, "undoing into replaced text could cut it at a stale range")
+        editor.textView.undoManager?.undo()   // must not crash or change anything
+        #expect(editor.textView.string == "new")
+    }
+
     @Test func handingBackTheSameStringKeepsTheSelection() {
         let editor = EditorHarness("hello world")
         editor.textView.setSelectedRange(NSRange(location: 3, length: 4))

@@ -101,6 +101,9 @@ public final class EditorCoordinator: NSObject, NSTextViewDelegate {
         let selection = textView.selectedRange()
         textView.string = newValue
         lastWrittenText = nil
+        // The text was replaced behind the undo stack's back (file reload, revert). Its entries point at
+        // ranges of the old text and could cut the new text in the wrong place, so drop them.
+        textView.undoManager?.removeAllActions()
         textView.setSelectedRange(NSRange(location: min(selection.location, length), length: 0))
     }
 
