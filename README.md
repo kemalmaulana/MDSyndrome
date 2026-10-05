@@ -47,7 +47,7 @@ It runs natively on Apple Silicon, has no Electron, and renders its preview nati
 | "GitHub renders it differently" | Same engine as GitHub ([cmark-gfm](https://github.com/swiftlang/swift-cmark)): tables, task lists, ~~strikethrough~~, autolinks, footnotes | ✅ |
 | "Typing lags on my 1 MB changelog" | Parsing runs off the main thread with a 120 ms debounce; a 1 MB document renders in about 0.15 s | ✅ |
 | "Where did my badges go?" | Relative, absolute and remote images, SVG included | ✅ |
-| "Is this file going to do something weird?" | No script in a document ever runs. Links only open for `http(s)` and `mailto`. A file nested 5,000 levels deep won't crash it | ✅ |
+| "Is this file going to do something weird?" | No script in a document ever runs. Web and mail links open, a link to another Markdown file opens it here, and anything else asks first; a program is never run from a link. A file nested 5,000 levels deep won't crash it | ✅ |
 | "How long is this thing?" | Live words, characters, lines and reading time | ✅ |
 | "Where was that again?" | Find in the editor and in the preview, with highlighted matches, a match count and next/previous | ✅ v0.3 |
 | "Documents just work" | New, Open, Recent, autosave, Versions, tabs, undo that behaves. A file another program saved is picked up when you come back to the app, or on <kbd>⌘R</kbd> | ✅ |
@@ -57,7 +57,7 @@ It runs natively on Apple Silicon, has no Electron, and renders its preview nati
 | `==highlight==` | Marked text, MacDown-style | ✅ v0.2 |
 | ```` ```mermaid ```` · ```` ```dot ```` | Mermaid and Graphviz diagrams as sharp vector pictures that follow light and dark mode. A typo shows the library's message above the source | ✅ v0.4 |
 | "Where are my editor colours and shortcuts?" | Markdown syntax highlighting in six themes (Tomorrow+ by default), lists that continue, auto-pairing, a Format menu and toolbar: <kbd>⌘B</kbd> <kbd>⌘I</kbd> <kbd>⌘K</kbd> <kbd>⌘1</kbd>–<kbd>⌘6</kbd> | ✅ v0.3 |
-| "I lose my place" | Synced scrolling and an outline sidebar | 🧪 v0.5 |
+| "I lose my place" | The editor and the preview scroll together, block by block, even in a 1 MB document. An outline (<kbd>⌃⌘S</kbd>) lists the headings and takes both panes there. `#anchor` links, links to other Markdown files and footnote links (with a way back) work. Click a task's checkbox in the preview to tick it in the source | ✅ v0.5 |
 | "Make it pretty" | Preview and editor themes, a Settings window, your own themes as JSON | 🧪 v0.6 |
 | "Send it to my boss" | Export to HTML and PDF, and print | 🧪 v0.7 |
 
@@ -89,8 +89,8 @@ make run
 | Command | What it does |
 |---|---|
 | `make run` | Generate the Xcode project, build Debug, launch the app |
-| `make test` | Lint + package tests (`swift test`) + app unit tests: 464 tests |
-| `make test-ui` | 15 UI tests that drive the real app. ⚠️ They take over keyboard and mouse for about a minute |
+| `make test` | Lint + package tests (`swift test`) + app unit tests: 583 tests |
+| `make test-ui` | 18 UI tests that drive the real app. ⚠️ They take over keyboard and mouse for about a minute |
 | `make dist VERSION=1.2.3` | Universal Release build → `dist/` with `.zip`, `.dmg` and `SHA256SUMS.txt` |
 | `make gen` | Regenerate `MDSyndrome.xcodeproj` from `project.yml` (the project file is never committed) |
 | `make clean` | Remove build output and the generated project |
@@ -101,7 +101,7 @@ make run
 flowchart LR
     E["✍️ Editor<br/><sub>NSTextView</sub>"] -- "text" --> S["DocumentSession<br/><sub>120 ms debounce</sub>"]
     S -- "off the main actor" --> P["MarkdownCore<br/><sub>cmark-gfm → Swift AST</sub>"]
-    P --> R["RenderedDocument<br/><sub>blocks · outline · stats</sub>"]
+    P --> R["RenderedDocument<br/><sub>blocks · outline · anchors · source map · stats</sub>"]
     R --> V["👁 PreviewKit<br/><sub>native SwiftUI views</sub>"]
     R --> B["Status bar"]
 ```
@@ -110,7 +110,7 @@ flowchart LR
 
 | Module | Organ | Job |
 |---|---|---|
-| [`MarkdownCore`](Packages/MDKit/Sources/MarkdownCore) | 🧠 brain | Wraps cmark-gfm's C API into an immutable `Sendable` AST. Each block has a stable ID and the source lines it came from. Also protects math, builds heading slugs, the outline and stats |
+| [`MarkdownCore`](Packages/MDKit/Sources/MarkdownCore) | 🧠 brain | Wraps cmark-gfm's C API into an immutable `Sendable` AST. Each block has a stable ID and the source lines it came from. Also protects math, builds heading slugs, the outline, the anchors and a source-line ↔ block map, and the stats |
 | [`PreviewKit`](Packages/MDKit/Sources/PreviewKit) | 👁 eyes | One SwiftUI view per block, the GitHub light/dark theme, image loading and link safety |
 | [`EditorKit`](Packages/MDKit/Sources/EditorKit) | ✋ hands | An NSTextView on TextKit 2: live Markdown highlighting, themes, the pure edit transforms behind list continuation and the Format menu, and one-step undo that reaches the document |
 | [`WebRenderKit`](Packages/MDKit/Sources/WebRenderKit) | 🔭 lens | The only module that imports WebKit. Draws diagrams, KaTeX formulas and complex HTML in hidden, locked-down web views and returns vector pictures, with a cache, one request at a time, a timeout, and recovery if the web process dies |
@@ -182,7 +182,7 @@ The divider between the panes can be dragged, and every window remembers its lay
 | Plan 2 | M2 (native) | Native LaTeX, code highlighting, HTML subset, `<details>`, front matter, `==highlight==` | ✅ |
 | Plan 3 | M3 | Editor syntax highlighting, themes, list continuation, formatting shortcuts, toolbar; reload from disk, find in editor and preview | ✅ |
 | Plan 4 | M2 (web) | WebRenderKit: Mermaid, Graphviz, KaTeX fallback, raw-HTML snapshots | ✅ |
-| Plan 5 | M4 | Synced scrolling, outline sidebar, anchors, links between documents | |
+| Plan 5 | M4 | Synced scrolling, outline, anchors, links between documents, ticking tasks in the preview | ✅ |
 | Plan 6 | M5 | Themes and Settings | |
 | Plan 7 | M6 | Export to HTML and PDF, print | |
 | Plan 8 | M7 | Performance and accessibility pass, Quick Look extension, Homebrew cask | |
