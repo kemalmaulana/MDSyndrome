@@ -15,6 +15,8 @@ protocol EditorScrolling: AnyObject {
 @MainActor
 protocol PreviewScrolling: AnyObject {
     func scroll(to id: BlockID)
+    /// To the very top, margin included.
+    func scrollToTop()
     /// Called when the user (not a jump) scrolled the preview and the first visible block changed.
     var onUserScroll: ((BlockID) -> Void)? { get set }
 }
@@ -59,6 +61,8 @@ final class SyncScrollCoordinator {
     /// The block the preview is on, as far as we know: where we last put it, or where the user last scrolled it to.
     /// The preview's own report is not asked: it can be stale right after a jump.
     private var previewBlock: BlockID?
+    /// The preview was last put at its very top, not at its first block.
+    private var previewIsAtTop = false
     private var editorEcho: (line: Int, until: ContinuousClock.Instant)?
     private var previewEcho: (id: BlockID, until: ContinuousClock.Instant)?
     private let clock: () -> ContinuousClock.Instant
@@ -111,6 +115,7 @@ final class SyncScrollCoordinator {
         if let line = sourceMap.startLine(of: id) { onPosition?(line) }
         if previewIsVisible {
             previewBlock = id
+            previewIsAtTop = false
             previewEcho = (id, clock() + Self.echoWindow)
             preview?.scroll(to: id)
         }
@@ -124,25 +129,37 @@ final class SyncScrollCoordinator {
     func editorDidScroll(_ line: Int) {
         if let echo = editorEcho, clock() < echo.until, abs(line - echo.line) <= Self.echoLineTolerance { return }
         onPosition?(line)
+        driver = .editor   // who moved last leads, even while nothing follows (sync off, a pane hidden)
         guard isActive else { return }
-        driver = .editor
         scrollPreview(toLine: line)
     }
 
     func previewDidScroll(_ id: BlockID) {
         if let echo = previewEcho, clock() < echo.until, echo.id == id { return }
-        if let line = sourceMap.startLine(of: id) { onPosition?(line) }
-        guard isActive else { return }
+        let line = sourceMap.startLine(of: id)
+        if let line { onPosition?(line) }
         driver = .preview
         previewBlock = id
-        if let line = sourceMap.startLine(of: id) { scrollEditor(toLine: line) }
+        previewIsAtTop = false
+        guard isActive, let line else { return }
+        scrollEditor(toLine: line)
     }
 
     // MARK: Moving
 
     private func scrollPreview(toLine line: Int) {
-        guard let id = sourceMap.blockID(atLine: line), id != previewBlock else { return }
+        // At or above the first block there is nothing to align to: show the top of the preview, with its margin.
+        if let first = sourceMap.firstBlock, line <= first.line {
+            guard previewBlock != first.id || !previewIsAtTop else { return }
+            previewBlock = first.id
+            previewIsAtTop = true
+            previewEcho = (first.id, clock() + Self.echoWindow)
+            preview?.scrollToTop()
+            return
+        }
+        guard let id = sourceMap.blockID(atLine: line), id != previewBlock || previewIsAtTop else { return }
         previewBlock = id
+        previewIsAtTop = false
         previewEcho = (id, clock() + Self.echoWindow)
         preview?.scroll(to: id)
     }
@@ -166,6 +183,7 @@ final class SyncScrollCoordinator {
     private func syncPreviewToEditor() {
         guard let line = editor?.topLine else { return }
         previewBlock = nil   // the blocks may be new ones
+        previewIsAtTop = false
         scrollPreview(toLine: line)
     }
 }

@@ -1,4 +1,5 @@
 import Foundation
+import MarkdownCore
 
 /// What a click on a link in the preview should do.
 public enum LinkAction: Equatable, Sendable {
@@ -53,5 +54,42 @@ public enum LinkPolicy {
             return .openDocument(target, fragment: fragment.flatMap { $0.isEmpty ? nil : $0 })
         }
         return .confirm(target)
+    }
+}
+
+/// What a clicked link does inside the preview. Kept apart from the view so it can be tested without a window.
+@MainActor
+struct PreviewLinkRouter {
+    enum Outcome: Equatable {
+        /// The system opens it (web and mail links).
+        case system
+        /// Dealt with here: scrolled, or passed to the window's handler.
+        case handled
+        /// Nothing to do.
+        case discarded
+    }
+
+    let baseURL: URL?
+    let anchors: DocumentAnchors
+    let scroller: PreviewScroller
+    let handler: ((LinkAction) -> Void)?
+
+    func route(_ url: URL) -> Outcome {
+        switch LinkPolicy.action(for: url, baseURL: baseURL) {
+        case .open:
+            return .system
+        case .scroll(let fragment):
+            // A name that matches nothing does nothing, as on GitHub.
+            if let target = anchors.target(for: fragment) {
+                scroller.scroll(to: target)
+                scroller.onNavigate?(target)
+            }
+            return .handled
+        case .ignore:
+            return .discarded
+        case let action:
+            handler?(action)
+            return .handled
+        }
     }
 }

@@ -26,6 +26,7 @@ public final class PreviewScroller {
     /// Installed by the preview view: scrolls its `ScrollView` to a block.
     @ObservationIgnored var jump: ((BlockID, UnitPoint) -> Void)?
     @ObservationIgnored private var order: [BlockID: Int] = [:]
+    @ObservationIgnored private var firstBlock: BlockID?
     @ObservationIgnored private var lastReported: BlockID?
 
     public init() {}
@@ -33,6 +34,18 @@ public final class PreviewScroller {
     /// Puts `id` at the top of the preview. Does not report a user scroll.
     public func scroll(to id: BlockID) {
         scroll(to: id, anchor: .top)
+    }
+
+    /// The id of an empty view at the very top of the scrolled content. Jumping to it shows the preview's own top margin;
+    /// jumping to the first block would hide it.
+    static let topMarker = BlockID(UInt64.max)
+
+    /// Scrolls to the very top, margin included.
+    public func scrollToTop() {
+        var transaction = Transaction(animation: nil)
+        transaction.disablesAnimations = true
+        withTransaction(transaction) { jump?(Self.topMarker, .top) }
+        if let firstBlock, topBlock != firstBlock { topBlock = firstBlock }
     }
 
     public func scroll(to id: BlockID, anchor: UnitPoint) {
@@ -47,6 +60,7 @@ public final class PreviewScroller {
     // MARK: From the view
 
     func blocksChanged(_ blocks: [Block]) {
+        firstBlock = blocks.first?.id
         order = Dictionary(blocks.enumerated().map { ($1.id, $0) }, uniquingKeysWith: { first, _ in first })
     }
 

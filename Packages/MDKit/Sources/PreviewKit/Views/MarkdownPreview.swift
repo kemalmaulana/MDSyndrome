@@ -45,16 +45,19 @@ public struct MarkdownPreview: View {
     public var body: some View {
         ScrollViewReader { proxy in
             ScrollView {
-                LazyVStack(alignment: .leading, spacing: theme.blockSpacing) {
-                    ForEach(rendered.document.blocks) { block in
-                        BlockView(block: block).id(block.id)
+                VStack(spacing: 0) {
+                    Color.clear.frame(height: 0).id(PreviewScroller.topMarker)   // a place to jump to that keeps the top margin
+                    LazyVStack(alignment: .leading, spacing: theme.blockSpacing) {
+                        ForEach(rendered.document.blocks) { block in
+                            BlockView(block: block).id(block.id)
+                        }
                     }
+                    .scrollTargetLayout()
+                    .frame(maxWidth: theme.maxContentWidth, alignment: .leading)
+                    .padding(.horizontal, 32)
+                    .padding(.vertical, 24)
+                    .frame(maxWidth: .infinity)
                 }
-                .scrollTargetLayout()
-                .frame(maxWidth: theme.maxContentWidth, alignment: .leading)
-                .padding(.horizontal, 32)
-                .padding(.vertical, 24)
-                .frame(maxWidth: .infinity)
             }
             .onScrollTargetVisibilityChange(idType: BlockID.self, threshold: 0.01) { activeScroller.visibleBlocksChanged($0) }
             .onScrollPhaseChange { _, phase in activeScroller.phaseChanged(phase) }
@@ -76,19 +79,12 @@ public struct MarkdownPreview: View {
         .environment(\.previewReloadToken, reloadToken)
         .environment(\.previewSearch, search)
         .environment(\.webRenderer, webRenderer)
-        .environment(\.toggleTask, onToggleTask)
+        .environment(\.toggleTask, onToggleTask.map(TaskToggleHandler.init))
         .environment(\.openURL, OpenURLAction { url in
-            switch LinkPolicy.action(for: url, baseURL: baseURL) {
-            case .open:
-                return .systemAction
-            case .scroll(let fragment):
-                scrollToAnchor(fragment)
-                return .handled
-            case .ignore:
-                return .discarded
-            case let action:
-                linkHandler?(action)
-                return .handled
+            switch PreviewLinkRouter(baseURL: baseURL, anchors: rendered.anchors, scroller: activeScroller, handler: linkHandler).route(url) {
+            case .system: .systemAction
+            case .handled: .handled
+            case .discarded: .discarded
             }
         })
         .onChange(of: rendered.document.blocks, initial: true) { _, blocks in
@@ -96,12 +92,5 @@ public struct MarkdownPreview: View {
             search?.update(blocks: blocks)
         }
         .accessibilityIdentifier("markdown-preview")
-    }
-
-    /// A `#fragment` link: scrolls to the heading or footnote it names; a name that matches nothing does nothing.
-    private func scrollToAnchor(_ fragment: String) {
-        guard let target = rendered.anchors.target(for: fragment) else { return }
-        activeScroller.scroll(to: target)
-        activeScroller.onNavigate?(target)
     }
 }

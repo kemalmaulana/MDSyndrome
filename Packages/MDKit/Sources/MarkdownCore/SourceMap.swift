@@ -22,6 +22,11 @@ public struct SourceMap: Hashable, Sendable {
 
     public var isEmpty: Bool { starts.isEmpty }
 
+    /// The block that starts first in the source, and the line it starts on. Above that line there is nothing to scroll to.
+    public var firstBlock: (id: BlockID, line: Int)? {
+        starts.isEmpty ? nil : (ids[0], starts[0])
+    }
+
     /// The top-level block that starts last on or before `line` (1-based). Blank lines between blocks belong
     /// to the block above; blocks that share their first line (an HTML block that became several) give the
     /// first of them. nil before the first block.

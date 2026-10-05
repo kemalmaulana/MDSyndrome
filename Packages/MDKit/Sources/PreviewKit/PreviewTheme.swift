@@ -151,8 +151,18 @@ extension EnvironmentValues {
     /// since the Markdown can stay the same while a picture on disk changed.
     @Entry public var previewReloadToken: Int = 0
     @Entry var listDepth: Int = 0
-    /// Called with the source line of a task item whose checkbox was clicked; nil leaves checkboxes as pictures.
-    @Entry var toggleTask: ((Int) -> Void)? = nil
+    /// Handles a click on a task item's checkbox; nil leaves checkboxes as pictures.
+    @Entry var toggleTask: TaskToggleHandler? = nil
     /// Horizontal alignment of HTML-authored blocks (`<p align="center">`), read by image rows.
     @Entry var blockAlignment: BlockAlignment = .leading
+}
+
+/// The checkbox handler, wrapped so the environment can compare it. The closure is rebuilt on every update of the
+/// window but does the same thing each time, so two handlers count as equal and an update does not invalidate
+/// every list in the preview.
+struct TaskToggleHandler: Equatable {
+    /// Gets the source line of the item.
+    let run: (Int) -> Void
+
+    static func == (lhs: TaskToggleHandler, rhs: TaskToggleHandler) -> Bool { true }
 }

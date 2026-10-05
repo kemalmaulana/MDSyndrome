@@ -30,7 +30,7 @@ struct ListBlockView: View {
             let box = Image(systemName: task == .checked ? "checkmark.square.fill" : "square")
                 .foregroundStyle(task == .checked ? theme.link.color : theme.secondaryText.color)
             if let toggleTask {
-                Button { toggleTask(item.lines.start) } label: { box }
+                Button { toggleTask.run(item.lines.start) } label: { box }
                     .buttonStyle(.plain)
                     .pointerStyle(.link)
                     .help(task == .checked ? "Mark as not completed" : "Mark as completed")
