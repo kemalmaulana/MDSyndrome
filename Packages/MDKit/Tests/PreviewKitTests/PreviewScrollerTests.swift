@@ -166,7 +166,7 @@ private final class PreviewWindow {
         scroll = try #require(scrollView(in: host.view))
     }
 
-    deinit { MainActor.assumeIsolated { window.orderOut(nil) } }
+    func close() { window.orderOut(nil) }
 
     /// Where a jump really landed. The preview's own "top block" is not asked right after a jump (SwiftUI's
     /// visibility callback can lag or report nothing then, and offsets differ between visits because LazyVStack
@@ -201,6 +201,7 @@ private final class PreviewWindow {
 @Suite(.requiresWindowServer) struct PreviewScrollerWindowTests {
     @Test func aJumpLandsOnTheBlockAnywhereInTheDocument() async throws {
         let preview = try await PreviewWindow(bytes: 400_000)
+        defer { preview.close() }
         let blocks = preview.rendered.document.blocks
         var rng = SystemRandomNumberGenerator()
         for _ in 0..<12 {
@@ -214,6 +215,7 @@ private final class PreviewWindow {
 
     @Test func theLastOfManyRapidJumpsWins() async throws {
         let preview = try await PreviewWindow(bytes: 400_000)
+        defer { preview.close() }
         let blocks = preview.rendered.document.blocks
         var rng = SystemRandomNumberGenerator()
         for _ in 0..<5 {
@@ -231,6 +233,7 @@ private final class PreviewWindow {
 
     @Test func ourOwnJumpsAreNeverReportedAsTheUsersScrolling() async throws {
         let preview = try await PreviewWindow(bytes: 400_000)
+        defer { preview.close() }
         let blocks = preview.rendered.document.blocks
         var reports: [BlockID] = []
         preview.scroller.onUserScroll = { reports.append($0) }
@@ -245,6 +248,7 @@ private final class PreviewWindow {
 
     @Test func aUserScrollIsReportedWithTheBlockAtTheTop() async throws {
         let preview = try await PreviewWindow(bytes: 400_000)
+        defer { preview.close() }
         let blocks = preview.rendered.document.blocks
         let order = Dictionary(uniqueKeysWithValues: blocks.enumerated().map { ($1.id, $0) })
         var reports: [BlockID] = []
@@ -270,6 +274,7 @@ private final class PreviewWindow {
 
     @Test func searchRevealJumpsWithoutAnimating() async throws {
         let preview = try await PreviewWindow(bytes: 200_000)
+        defer { preview.close() }
         let blocks = preview.rendered.document.blocks
         let before = preview.scroll.contentView.bounds.minY
         preview.scroller.scroll(to: blocks[blocks.count / 2].id, anchor: .center)

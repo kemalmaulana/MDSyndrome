@@ -40,7 +40,7 @@ private final class ScrollHarness {
         await wait(500)
     }
 
-    deinit { MainActor.assumeIsolated { window.orderOut(nil) } }
+    func close() { window.orderOut(nil) }
 
     func wait(_ milliseconds: Int) async { try? await Task.sleep(for: .milliseconds(milliseconds)) }
 
@@ -65,11 +65,13 @@ private final class ScrollHarness {
 @Suite(.requiresWindowServer, .serialized) struct EditorScrollTests {
     @Test func aFreshEditorIsAtLineOne() async {
         let editor = await ScrollHarness("# Title\n\ntext")
+        defer { editor.close() }
         #expect(editor.controller.topLine == 1)
     }
 
     @Test func aJumpPutsTheLineAtTheTopExactlyAndAtOnce() async {
         let editor = await ScrollHarness(ScrollHarness.document(bytes: 400_000))
+        defer { editor.close() }
         var rng = SystemRandomNumberGenerator()
         var wrongNow = 0
         var drift: [Int] = []
@@ -92,6 +94,7 @@ private final class ScrollHarness {
 
     @Test func ourOwnJumpsAreNotReported() async {
         let editor = await ScrollHarness(ScrollHarness.document(bytes: 200_000))
+        defer { editor.close() }
         editor.controller.scroll(toLine: 2_000)
         editor.controller.scroll(toLine: 700)
         editor.controller.scroll(toLine: 1)
@@ -101,6 +104,7 @@ private final class ScrollHarness {
 
     @Test func aScrollThatIsNotOursIsReportedOncePerChangeOfTopLine() async {
         let editor = await ScrollHarness(ScrollHarness.document(bytes: 200_000))
+        defer { editor.close() }
         editor.userScroll(to: 100_000)
         await editor.wait(250)
         #expect(editor.reported.count == 1)
@@ -116,6 +120,7 @@ private final class ScrollHarness {
 
     @Test func manyScrollStepsInOneTurnAreReportedOnceWithTheLastLine() async {
         let editor = await ScrollHarness(ScrollHarness.document(bytes: 200_000))
+        defer { editor.close() }
         for step in 1...20 { editor.userScroll(to: Double(step) * 3_000) }
         await editor.wait(300)
         #expect(editor.reported.count == 1, "\(editor.reported)")
@@ -124,6 +129,7 @@ private final class ScrollHarness {
 
     @Test func aJumpAfterAUserScrollIsStillSilentAndTheNextUserScrollStillReports() async {
         let editor = await ScrollHarness(ScrollHarness.document(bytes: 200_000))
+        defer { editor.close() }
         editor.userScroll(to: 50_000)
         await editor.wait(250)
         editor.controller.scroll(toLine: 3_000)
@@ -136,6 +142,7 @@ private final class ScrollHarness {
 
     @Test func linesBeyondTheTextAreClampedAndNeverCrash() async {
         let editor = await ScrollHarness(ScrollHarness.document(bytes: 100_000))
+        defer { editor.close() }
         editor.controller.scroll(toLine: 10_000_000)
         await editor.wait(150)
         let last = editor.controller.topLine ?? 0
@@ -148,6 +155,7 @@ private final class ScrollHarness {
 
     @Test func anEmptyEditorIgnoresJumps() async {
         let editor = await ScrollHarness("")
+        defer { editor.close() }
         editor.controller.scroll(toLine: 40)
         editor.controller.scroll(toLine: 1)
         #expect(editor.scrollView.contentView.bounds.minY == 0)
@@ -156,6 +164,7 @@ private final class ScrollHarness {
 
     @Test func aHiddenEditorHasNoTopLineAndDoesNotScroll() async {
         let editor = await ScrollHarness(ScrollHarness.document(bytes: 100_000))
+        defer { editor.close() }
         editor.controller.scroll(toLine: 800)
         let before = editor.scrollView.contentView.bounds.minY
         editor.scrollView.isHidden = true
@@ -169,6 +178,7 @@ private final class ScrollHarness {
 
     @Test func aJumpOnAMegabyteIsQuick() async {
         let editor = await ScrollHarness(ScrollHarness.document(bytes: 1_000_000))
+        defer { editor.close() }
         var rng = SystemRandomNumberGenerator()
         let clock = ContinuousClock()
         var worst = Duration.zero
@@ -190,6 +200,7 @@ private final class ScrollHarness {
 
     @Test func togglesTheItemInTheDocumentAsOneUndoableEdit() async throws {
         let editor = await ScrollHarness(text)
+        defer { editor.close() }
         #expect(editor.controller.toggleTask(atLine: 3))
         #expect(editor.textView.string.hasPrefix("# Tasks\n\n- [x] one\n"))
         #expect(editor.box.value == editor.textView.string, "the document binding follows")
@@ -201,6 +212,7 @@ private final class ScrollHarness {
 
     @Test func refusesALineThatIsNotATask() async {
         let editor = await ScrollHarness(text)
+        defer { editor.close() }
         #expect(!editor.controller.toggleTask(atLine: 1))
         #expect(!editor.controller.toggleTask(atLine: 7))
         #expect(!editor.controller.toggleTask(atLine: 0))
@@ -210,6 +222,7 @@ private final class ScrollHarness {
 
     @Test func leavesTheSelectionAndTheScrollPositionAlone() async {
         let editor = await ScrollHarness(text)
+        defer { editor.close() }
         editor.textView.setSelectedRange(NSRange(location: 12, length: 2))
         #expect(editor.controller.toggleTask(atLine: 5))
         #expect(editor.textView.selectedRange() == NSRange(location: 12, length: 2))
@@ -217,6 +230,7 @@ private final class ScrollHarness {
 
     @Test func worksWhileTheEditorIsHidden() async {
         let editor = await ScrollHarness(text)
+        defer { editor.close() }
         editor.scrollView.isHidden = true
         #expect(editor.controller.toggleTask(atLine: 4))
         #expect(editor.textView.string.contains("- [ ] two"))
@@ -224,6 +238,7 @@ private final class ScrollHarness {
 
     @Test func aStaleLineIsRefusedAfterTheTextMoved() async {
         let editor = await ScrollHarness(text)
+        defer { editor.close() }
         editor.textView.insertText("new first line\n", replacementRange: NSRange(location: 0, length: 0))
         // the preview still thinks "- [ ] one" is on line 3; it is on line 4 now and line 3 is blank
         #expect(!editor.controller.toggleTask(atLine: 2))
