@@ -56,11 +56,17 @@ enum NetworkBlocker {
 /// host waits on.
 @MainActor
 final class NavigationLock: NSObject, WKNavigationDelegate, WKUIDelegate {
-    /// The one URL the web view may load (the shell page, or `about:blank` for HTML snapshots).
-    var allowedURL: URL?
+    /// The one URL the web view may load next (the shell page, or `about:blank` for HTML snapshots).
+    private(set) var allowedURL: URL?
     var onTerminate: (() -> Void)?
     private var pendingLoad: CheckedContinuation<Void, Error>?
-    private var allowedOnce = true
+    private var allowedOnce = false
+
+    /// Permits exactly one main-frame load of `url`. Called before each load the host starts itself.
+    func allowNextLoad(of url: URL) {
+        allowedURL = url
+        allowedOnce = true
+    }
 
     /// Suspends until the page that was just requested has finished loading.
     func waitForLoad(_ start: () -> Void) async throws {

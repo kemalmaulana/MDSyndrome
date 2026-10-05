@@ -4,7 +4,7 @@ import WebKit
 /// The hidden web view that runs mermaid, viz.js and KaTeX. It loads one fixed bundled page; document
 /// text reaches it only as arguments of `callAsyncJavaScript`, and what comes back is a PDF.
 @MainActor
-final class ScriptHost {
+final class ScriptHost: RenderHost {
     private let window = OffscreenWindow()
     private let webView: WKWebView
     private let lock = NavigationLock()
@@ -27,7 +27,7 @@ final class ScriptHost {
         guard FileManager.default.fileExists(atPath: shell.path) else { throw RenderError.unavailable("shell.html is missing") }
         let rules = try await NetworkBlocker.ruleList()
         let host = ScriptHost(rules: rules)
-        host.lock.allowedURL = shell
+        host.lock.allowNextLoad(of: shell)
         try await host.lock.waitForLoad {
             host.webView.loadFileURL(shell, allowingReadAccessTo: directory)
         }
@@ -91,6 +91,8 @@ final class ScriptHost {
         } catch let error as WKError where error.code == .javaScriptExceptionOccurred {
             let message = (error.userInfo["WKJavaScriptExceptionMessage"] as? String) ?? error.localizedDescription
             throw RenderError.syntax(message)
+        } catch let error as WKError where error.code == .webContentProcessTerminated {
+            throw RenderError.crashed
         } catch {
             if !isUsable { throw RenderError.crashed }
             throw error
