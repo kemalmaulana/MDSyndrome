@@ -100,6 +100,13 @@ private func run(_ marked: String, _ op: (NSString, NSRange) -> TextEdit?) -> St
         #expect(run("«word»") { EditTransforms.typed("(", in: $0, selection: $1) } == "(«word»)")
     }
 
+    @Test func repeatedQuotesDoNotPairAgain() {
+        // ` then ` types over the closer, so the third ` must not open another pair: that is how a fence is typed.
+        #expect(run("``‸") { EditTransforms.typed("`", in: $0, selection: $1) } == nil)
+        #expect(run("\"\"‸") { EditTransforms.typed("\"", in: $0, selection: $1) } == nil)
+        #expect(run("(‸") { EditTransforms.typed("(", in: $0, selection: $1) } == "((‸)", "brackets still nest")
+    }
+
     @Test func noPairInsideWordsOrApostrophes() {
         #expect(run("don‸") { EditTransforms.typed("'", in: $0, selection: $1) } == nil)
         #expect(run("‸word") { EditTransforms.typed("(", in: $0, selection: $1) } == nil)

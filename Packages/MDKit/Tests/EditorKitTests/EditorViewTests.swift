@@ -287,6 +287,13 @@ private final class EditorHarness {
         #expect(editor.box.value == "(x)")
     }
 
+    @Test func typingThreeBackticksGivesAFenceNotAnExtraPair() {
+        let editor = EditorHarness()
+        editor.type("```")
+        #expect(editor.textView.string == "```")
+        #expect(editor.marked == "```‸")
+    }
+
     @Test func backspaceDeletesAnEmptyPair() {
         let editor = EditorHarness()
         editor.type("[")

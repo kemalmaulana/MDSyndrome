@@ -183,6 +183,7 @@ public enum EditTransforms {
         guard let close = pairs[character] else { return nil }
         let isQuote = character == close
         if isQuote, previous.first.map({ $0.isLetter || $0.isNumber }) == true { return nil }   // don't, it's
+        if isQuote, previous == character { return nil }   // the third ` of a fence, the third " of a docstring
         if let n = next.first, n.isLetter || n.isNumber { return nil }                            // before a word
         return TextEdit(range: NSRange(location: selection.location, length: 0), replacement: character + close,
                         selection: NSRange(location: selection.location + 1, length: 0))
