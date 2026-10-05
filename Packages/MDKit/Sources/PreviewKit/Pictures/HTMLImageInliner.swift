@@ -9,7 +9,7 @@ enum HTMLImageInliner {
     // <img … src="value"> or src='value'; group 2 or 3 is the value.
     private static let imageSource = try! NSRegularExpression(pattern: #"(<img\b[^>]*?\bsrc\s*=\s*)(?:"([^"]*)"|'([^']*)')"#, options: [.caseInsensitive])
 
-    static func inline(_ html: String, baseURL: URL?, reload: Bool = false) async -> String {
+    static func inline(_ html: String, baseURL: URL?, reload: Bool = false, allowRemote: Bool = true) async -> String {
         let text = html as NSString
         let matches = imageSource.matches(in: html, range: NSRange(location: 0, length: text.length))
         guard !matches.isEmpty else { return html }
@@ -26,7 +26,7 @@ enum HTMLImageInliner {
         var dataURIs: [String: String] = [:]
         for source in sources.prefix(maxImages) {
             let resolved = ImageSource.resolve(source, baseURL: baseURL)
-            guard let data = try? await ImageLoader.data(for: resolved, reload: reload), data.count <= maxBytesPerImage,
+            guard let data = try? await ImageLoader.data(for: resolved, reload: reload, allowRemote: allowRemote), data.count <= maxBytesPerImage,
                   let mime = mimeType(of: data) else { continue }
             dataURIs[source] = "data:\(mime);base64,\(data.base64EncodedString())"
         }

@@ -14,6 +14,7 @@ public struct MarkdownPreview: View {
     private let scroller: PreviewScroller?
     private let linkHandler: ((LinkAction) -> Void)?
     private let onToggleTask: ((Int) -> Void)?
+    private let loadRemoteImages: Bool
     @State private var ownScroller = PreviewScroller()
 
     private var activeScroller: PreviewScroller { scroller ?? ownScroller }
@@ -26,11 +27,12 @@ public struct MarkdownPreview: View {
     ///     makes its own when there is none.
     ///   - linkHandler: gets the links that leave the preview (another document, a file, another scheme); web and mail
     ///     links open through the system and `#fragment` links scroll the preview themselves.
+    ///   - loadRemoteImages: false keeps `http`/`https` images from being fetched (Settings ▸ General).
     ///   - onToggleTask: gets the source line of a task item whose checkbox was clicked (PV-11); nil leaves the
     ///     checkboxes as pictures.
     public init(rendered: RenderedDocument, baseURL: URL?, theme: PreviewTheme = .github, reloadToken: Int = 0, search: PreviewSearch? = nil,
                 webRenderer: (any WebRendering)? = nil, scroller: PreviewScroller? = nil, linkHandler: ((LinkAction) -> Void)? = nil,
-                onToggleTask: ((Int) -> Void)? = nil) {
+                onToggleTask: ((Int) -> Void)? = nil, loadRemoteImages: Bool = true) {
         self.rendered = rendered
         self.baseURL = baseURL
         self.theme = theme
@@ -40,6 +42,7 @@ public struct MarkdownPreview: View {
         self.scroller = scroller
         self.linkHandler = linkHandler
         self.onToggleTask = onToggleTask
+        self.loadRemoteImages = loadRemoteImages
     }
 
     public var body: some View {
@@ -77,6 +80,7 @@ public struct MarkdownPreview: View {
         .environment(\.previewTheme, theme)
         .environment(\.documentBaseURL, baseURL)
         .environment(\.previewReloadToken, reloadToken)
+        .environment(\.loadRemoteImages, loadRemoteImages)
         .environment(\.previewSearch, search)
         .environment(\.webRenderer, webRenderer)
         .environment(\.toggleTask, onToggleTask.map(TaskToggleHandler.init))
