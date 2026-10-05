@@ -9,6 +9,7 @@ struct DocumentToolbar: CustomizableToolbarContent {
     @Binding var outlineVisible: Bool
     let editor: EditorController
     let editorIsVisible: Bool
+    let export: ExportActions
 
     var body: some CustomizableToolbarContent {
         ToolbarItem(id: "outline", placement: .navigation) {
@@ -43,6 +44,18 @@ struct DocumentToolbar: CustomizableToolbarContent {
             }
             .disabled(!editorIsVisible)
             .help("Set the heading level")
+        }
+        ToolbarItem(id: "export", placement: .primaryAction) {
+            Menu {
+                Button("Export as HTML…") { export.exportHTML.run() }
+                Button("Export as PDF…") { export.exportPDF.run() }
+                Button("Copy HTML") { export.copyHTML.run() }
+                Divider()
+                Button("Print…") { export.printDocument.run() }
+            } label: {
+                Label("Export", systemImage: "square.and.arrow.up")
+            }
+            .help("Export, copy as HTML or print")
         }
         ToolbarItem(id: "format.more", placement: .primaryAction) {
             Menu {

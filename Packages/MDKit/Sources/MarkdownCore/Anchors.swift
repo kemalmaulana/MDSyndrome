@@ -119,3 +119,12 @@ public struct DocumentAnchors: Hashable, Sendable {
         }
     }
 }
+
+extension DocumentAnchors {
+    /// The GitHub slug of every heading block in the document (nested ones included), for `id` attributes in exports.
+    public static func headingSlugs(in blocks: [Block]) -> [BlockID: String] {
+        var slugs: [BlockID: String] = [:]
+        for heading in HeadingWalk.headings(in: blocks) { slugs[heading.id] = heading.slug }
+        return slugs
+    }
+}

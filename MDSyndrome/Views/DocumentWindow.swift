@@ -64,9 +64,10 @@ struct DocumentWindow: View {
         }
         .frame(minHeight: 400)
         .toolbar(id: "document") {
-            DocumentToolbar(layoutMode: $layoutMode, outlineVisible: $outlineVisible, editor: editor, editorIsVisible: editorIsVisible)
+            DocumentToolbar(layoutMode: $layoutMode, outlineVisible: $outlineVisible, editor: editor, editorIsVisible: editorIsVisible, export: exportActions)
         }
         .focusedSceneValue(\.layoutMode, $layoutMode)
+        .focusedSceneValue(\.exportActions, exportActions)
         .focusedSceneValue(\.outlineVisible, $outlineVisible)
         .focusedSceneValue(\.editorController, editorIsVisible ? editor : nil)
         .focusedSceneValue(\.findRouter, FindRouter(editor: editorIsVisible ? editor : nil, preview: layoutMode == .editor ? nil : previewSearch,
@@ -104,6 +105,22 @@ struct DocumentWindow: View {
         }
         .onChange(of: document.text) { _, newText in session.textDidChange(newText) }
         .onReceive(NotificationCenter.default.publisher(for: NSApplication.didBecomeActiveNotification)) { _ in pullChangesFromDisk() }
+    }
+
+    /// What gets exported: the current render, on the theme chosen in Settings at normal size.
+    private var exportSource: ExportService.Source {
+        let name = model.settings.previewThemeName
+        let theme = model.previewThemes.first { $0.name == name } ?? .github
+        return ExportService.Source(document: session.rendered.document, title: fileURL?.deletingPathExtension().lastPathComponent ?? "Untitled",
+                                    baseURL: fileURL?.deletingLastPathComponent(), theme: theme)
+    }
+
+    private var exportActions: ExportActions {
+        ExportActions(
+            exportHTML: DocumentAction { ExportService.exportHTML(exportSource, window: NSApp.keyWindow) },
+            exportPDF: DocumentAction { ExportService.exportPDF(exportSource, window: NSApp.keyWindow) },
+            copyHTML: DocumentAction { ExportService.copyHTML(exportSource) },
+            printDocument: DocumentAction { ExportService.printDocument(exportSource, window: NSApp.keyWindow) })
     }
 
     /// A click on a task checkbox in the preview. The line number belongs to the render the preview shows, so it

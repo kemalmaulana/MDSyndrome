@@ -59,7 +59,7 @@ It runs natively on Apple Silicon, has no Electron, and renders its preview nati
 | "Where are my editor colours and shortcuts?" | Markdown syntax highlighting in six themes (Tomorrow+ by default), lists that continue, auto-pairing, a Format menu and toolbar: <kbd>⌘B</kbd> <kbd>⌘I</kbd> <kbd>⌘K</kbd> <kbd>⌘1</kbd>–<kbd>⌘6</kbd> | ✅ v0.3 |
 | "I lose my place" | The editor and the preview scroll together, block by block, even in a 1 MB document. An outline (<kbd>⌃⌘S</kbd>) lists the headings and takes both panes there. `#anchor` links, links to other Markdown files and footnote links (with a way back) work. Click a task's checkbox in the preview to tick it in the source | ✅ v0.5 |
 | "Make it pretty" | A Settings window (<kbd>⌘,</kbd>) with General, Editor, Markdown and Preview tabs, applied live to every open document. Four preview themes (GitHub, Clearness, Solarized, System), six editor themes, preview zoom (<kbd>⌘+</kbd> <kbd>⌘−</kbd> <kbd>⌘0</kbd>), and your own themes as JSON files in `~/Library/Application Support/MDSyndrome/Themes` | ✅ v0.6 |
-| "Send it to my boss" | Export to HTML and PDF, and print | 🧪 v0.7 |
+| "Send it to my boss" | File ▸ Export as HTML… (one self-contained file, light and dark, no script in it) or PDF (paginated, text stays vector), Copy HTML (<kbd>⌥⌘C</kbd>), and Print (<kbd>⌘P</kbd>). Diagrams export as their source for now | ✅ v0.7 |
 
 ✅ ships today · 🧪 in clinical trials (see [the treatment plan](#-treatment-plan))
 
@@ -160,6 +160,7 @@ A document with no diagram, no unusual formula and no complex HTML never starts 
 |---|---|
 | <kbd>⌥⌘1</kbd> · <kbd>⌥⌘2</kbd> · <kbd>⌥⌘3</kbd> | Editor only · Editor & Preview · Preview only |
 | <kbd>⌘,</kbd> | Settings |
+| <kbd>⌘P</kbd> · <kbd>⌥⌘C</kbd> | Print · Copy HTML |
 | <kbd>⌘+</kbd> · <kbd>⌘−</kbd> · <kbd>⌘0</kbd> | Preview text bigger · smaller · actual size |
 | <kbd>⌃⌘S</kbd> | Show or hide the outline |
 | <kbd>⌘N</kbd> · <kbd>⌘O</kbd> · <kbd>⌘S</kbd> | New · Open · Save |
