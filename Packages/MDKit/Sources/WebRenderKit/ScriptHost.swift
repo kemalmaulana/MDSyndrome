@@ -31,8 +31,13 @@ final class ScriptHost: RenderHost {
         let rules = try await NetworkBlocker.ruleList()
         let host = ScriptHost(rules: rules, transparent: transparent)
         host.lock.allowNextLoad(of: shell)
-        try await host.lock.waitForLoad {
-            host.webView.loadFileURL(shell, allowingReadAccessTo: directory)
+        do {
+            try await host.lock.waitForLoad {
+                host.webView.loadFileURL(shell, allowingReadAccessTo: directory)
+            }
+        } catch {
+            host.invalidate()   // no half-started web view left behind
+            throw error
         }
         host.window.orderFrontRegardless()
         return host
@@ -64,6 +69,7 @@ final class ScriptHost: RenderHost {
         webView.navigationDelegate = nil
         webView.uiDelegate = nil
         webView.stopLoading()
+        webView.killWebContentProcess()
         window.contentView = nil
         window.orderOut(nil)
         window.close()

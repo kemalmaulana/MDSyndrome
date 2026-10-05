@@ -49,6 +49,9 @@ public final class WebRenderer: WebRendering {
         self.makeHost = makeHost
     }
 
+    /// The live scripted host, so tests can sabotage it.
+    var scriptHostForTesting: ScriptHost? { hosts[.script] as? ScriptHost }
+
     public func clearCache() {
         cache.removeAll()
     }

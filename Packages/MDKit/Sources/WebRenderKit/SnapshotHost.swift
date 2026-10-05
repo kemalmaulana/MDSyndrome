@@ -50,6 +50,7 @@ final class SnapshotHost: RenderHost {
         webView.navigationDelegate = nil
         webView.uiDelegate = nil
         webView.stopLoading()
+        webView.killWebContentProcess()
         window.contentView = nil
         window.orderOut(nil)
         window.close()

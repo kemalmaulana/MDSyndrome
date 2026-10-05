@@ -146,3 +146,23 @@ extension WKWebView {
         return true
     }
 }
+
+extension WKWebView {
+    /// Ends this web view's web content process. A script that never returns cannot be interrupted any other
+    /// way, and merely releasing the view would keep the process (and a CPU core) busy for good, because the
+    /// pending call still holds the view and a busy process never notices that its app is gone.
+    ///
+    /// Each host has its own website data store and so its own process, which is why killing it affects
+    /// nothing else. Both calls are private and used only if this web view has them; without them a timed out
+    /// render leaves the process to finish on its own.
+    @MainActor
+    func killWebContentProcess() {
+        let identifier = NSSelectorFromString("_webProcessIdentifier")
+        if responds(to: identifier), let pid = (value(forKey: "_webProcessIdentifier") as? NSNumber)?.int32Value, pid > 1, pid != getpid() {
+            kill(pid, SIGKILL)
+            return
+        }
+        let polite = NSSelectorFromString("_killWebContentProcess")
+        if responds(to: polite) { perform(polite) }
+    }
+}
