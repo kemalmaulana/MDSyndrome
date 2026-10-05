@@ -77,9 +77,11 @@ public final class EditorCoordinator: NSObject, NSTextViewDelegate {
         textView.behavior = configuration
         if textView.isContinuousSpellCheckingEnabled != configuration.spellCheck { textView.isContinuousSpellCheckingEnabled = configuration.spellCheck }
         applyWrapping(configuration.softWrap, to: textView)
+        let previousConfiguration = appliedConfiguration
+        appliedConfiguration = configuration   // before the inset: changing it resizes the view, which reads this
         updateInset(configuration)
 
-        let restyle = force || theme != appliedTheme || appliedConfiguration.map { Self.visuallyDiffers($0, configuration) } ?? true
+        let restyle = force || theme != appliedTheme || previousConfiguration.map { Self.visuallyDiffers($0, configuration) } ?? true
         appliedConfiguration = configuration
         appliedTheme = theme
         guard restyle else { return }

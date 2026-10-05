@@ -89,7 +89,7 @@ make run
 | Command | What it does |
 |---|---|
 | `make run` | Generate the Xcode project, build Debug, launch the app |
-| `make test` | Lint + package tests (`swift test`) + app unit tests (the suite is brought up to date for v0.6–v0.7 in Plan 8) |
+| `make test` | Lint + package tests (`swift test`) + app unit tests: 619 tests |
 | `make test-ui` | 18 UI tests that drive the real app. ⚠️ They take over keyboard and mouse for about a minute |
 | `make dist VERSION=1.2.3` | Universal Release build → `dist/` with `.zip`, `.dmg` and `SHA256SUMS.txt` |
 | `make gen` | Regenerate `MDSyndrome.xcodeproj` from `project.yml` (the project file is never committed) |
@@ -191,7 +191,7 @@ The divider between the panes can be dragged, and every window remembers its lay
 | Plan 5 | M4 | Synced scrolling, outline, anchors, links between documents, ticking tasks in the preview | ✅ |
 | Plan 6 | M5 | Themes and Settings window, user theme folder | ✅ |
 | Plan 7 | M6 | Export to HTML and PDF, copy HTML, print | ✅ |
-| Plan 8 | M7 | All the tests for Plans 6–8 in one pass, performance and accessibility pass, release polish | |
+| Plan 8 | M7 | Tests for Plans 6–7, CI fixes, accessibility check; Quick Look and Homebrew cask still to do | ✅ |
 
 ## 🚀 Shipping a release (maintainers)
 
