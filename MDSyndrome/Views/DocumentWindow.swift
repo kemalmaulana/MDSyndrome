@@ -77,7 +77,7 @@ struct DocumentWindow: View {
                 let heading = Outline.current(in: session.rendered.outline, atLine: line)?.id
                 if heading != currentHeading { currentHeading = heading }
             }
-            previewScroller.onNavigate = { [weak sync] id in sync?.navigate(to: id) }
+            previewScroller.onNavigate = { [weak sync] id in sync?.previewDidNavigate(to: id) }
         }
         .onChange(of: syncScroll) { _, enabled in sync.isEnabled = enabled }
         .onChange(of: layoutMode, initial: true) { _, mode in

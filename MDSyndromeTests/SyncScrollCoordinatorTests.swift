@@ -263,6 +263,48 @@ private struct Rig {
         #expect(rig.preview.jumps.count == 1 && rig.editor.scrolls.count == 1)
     }
 
+    @Test func aNavigationThePreviewStartedOnlyMovesTheEditor() {
+        let rig = Rig()
+        rig.coordinator.previewDidNavigate(to: rig.id(5))   // an anchor or a search match: the preview has scrolled itself
+        #expect(rig.preview.jumps.isEmpty, "the preview keeps the way it placed the block, a centred search match for one")
+        #expect(rig.editor.scrolls == [11])
+        #expect(rig.coordinator.driver == .none)
+        rig.editor.onScroll?(12)
+        rig.preview.onUserScroll?(rig.id(5))
+        #expect(rig.preview.jumps.isEmpty && rig.editor.scrolls.count == 1, "the echoes start nothing")
+    }
+
+    @Test func aNavigationThePreviewStartedReachesTheEditorEvenWhileFollowingIsOff() {
+        let rig = Rig()
+        rig.coordinator.isEnabled = false
+        rig.coordinator.previewDidNavigate(to: rig.id(2))
+        #expect(rig.editor.scrolls == [5])
+        let hidden = Rig()
+        hidden.coordinator.layoutDidChange(editorVisible: false, previewVisible: true)
+        hidden.coordinator.previewDidNavigate(to: hidden.id(2))
+        #expect(hidden.editor.scrolls.isEmpty)
+        hidden.coordinator.layoutDidChange(editorVisible: true, previewVisible: true)
+        #expect(hidden.editor.scrolls == [5], "a hidden editor catches up when it shows, the preview having led")
+        #expect(hidden.preview.jumps.isEmpty, "and the preview is not pulled back to where the editor was")
+    }
+
+    @Test func navigatingWhileOnePaneIsHiddenLetsThePaneThatMovedLead() {
+        let previewOnly = Rig()
+        previewOnly.coordinator.layoutDidChange(editorVisible: false, previewVisible: true)
+        previewOnly.coordinator.navigate(to: previewOnly.id(6))
+        #expect(previewOnly.coordinator.driver == .preview)
+        previewOnly.coordinator.layoutDidChange(editorVisible: true, previewVisible: true)
+        #expect(previewOnly.editor.scrolls == [13])
+        #expect(previewOnly.preview.jumps == [previewOnly.id(6)], "only the navigation itself, no pull back")
+
+        let editorOnly = Rig()
+        editorOnly.coordinator.layoutDidChange(editorVisible: true, previewVisible: false)
+        editorOnly.coordinator.navigate(to: editorOnly.id(6))
+        #expect(editorOnly.coordinator.driver == .editor)
+        editorOnly.coordinator.layoutDidChange(editorVisible: true, previewVisible: true)
+        #expect(editorOnly.preview.jumps == [editorOnly.id(6)])
+    }
+
     @Test func navigatingWorksWhileFollowingIsOff() {
         let rig = Rig()
         rig.coordinator.isEnabled = false

@@ -108,10 +108,9 @@ final class SyncScrollCoordinator {
         driver = .editor
     }
 
-    /// The outline, a link or a search match took the window to a block: both panes go there, whether or not
-    /// scrolling together is on.
+    /// The outline took the window to a block: both panes go there, whether or not scrolling together is on.
     func navigate(to id: BlockID) {
-        driver = .none
+        driver = driverAfterNavigation
         if let line = sourceMap.startLine(of: id) { onPosition?(line) }
         if previewIsVisible {
             previewBlock = id
@@ -120,6 +119,28 @@ final class SyncScrollCoordinator {
             preview?.scroll(to: id)
         }
         if editorIsVisible, let line = sourceMap.startLine(of: id) { scrollEditor(toLine: line) }
+    }
+
+    /// The preview moved itself to a block (a link, a search match): only the editor follows, so the preview keeps the
+    /// way it placed the block (a search match is centred, not put at the top). Whether or not scrolling together is on.
+    func previewDidNavigate(to id: BlockID) {
+        driver = driverAfterNavigation
+        previewBlock = id
+        previewIsAtTop = false
+        previewEcho = (id, clock() + Self.echoWindow)
+        guard let line = sourceMap.startLine(of: id) else { return }
+        onPosition?(line)
+        if editorIsVisible { scrollEditor(toLine: line) }
+    }
+
+    /// After a navigation both panes are at the same place, so neither leads; if one of them is hidden the other has
+    /// moved alone and leads, so that the hidden one catches up to it when it shows.
+    private var driverAfterNavigation: Driver {
+        switch (editorIsVisible, previewIsVisible) {
+        case (true, false): .editor
+        case (false, true): .preview
+        default: .none
+        }
     }
 
     // MARK: From the panes
