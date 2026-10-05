@@ -8,13 +8,12 @@ public struct OutlineItem: Hashable, Sendable, Identifiable {
 }
 
 public enum Outline {
-    /// Top-level headings only (headings nested in quotes/lists are not navigation targets).
+    /// Top-level headings (including headings written as HTML such as `<h1 align="center">`); headings nested in
+    /// quotes or lists are anchors but not outline entries. Slugs come from the same walk as the anchors, so
+    /// they number duplicates the way GitHub does.
     public static func make(from document: MarkdownDocument) -> [OutlineItem] {
-        var slugger = Slugger()
-        return document.blocks.compactMap { block in
-            guard case .heading(let level, let content) = block.kind else { return nil }
-            let title = Inline.plainText(content)
-            return OutlineItem(id: block.id, level: level, title: title, slug: slugger.slug(title), line: block.lines.start)
+        HeadingWalk.headings(in: document.blocks).filter(\.isTopLevel).map {
+            OutlineItem(id: $0.id, level: $0.level, title: $0.text, slug: $0.slug, line: $0.line)
         }
     }
 }
