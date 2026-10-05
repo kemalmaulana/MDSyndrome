@@ -37,19 +37,22 @@ import Testing
     }
 
     @Test func resultsAreCached() throws {
-        // NSCache may drop an entry at any moment (memory pressure, a busy machine), so a pair of renders
-        // can legitimately miss; the cache works if any of a few pairs shares one image.
-        var shared = false
-        for attempt in 0..<5 where !shared {
-            let latex = "y^3 + \(attempt)"
-            guard case .success(let first) = MathRenderer.render(latex, fontSize: 14, display: false),
-                  case .success(let second) = MathRenderer.render(latex, fontSize: 14, display: false) else {
-                Issue.record("render failed")
-                return
-            }
-            shared = first.image === second.image
+        guard case .success(let first) = MathRenderer.render("y^3", fontSize: 14, display: false),
+              case .success(let second) = MathRenderer.render("y^3", fontSize: 14, display: false) else {
+            Issue.record("render failed")
+            return
         }
-        #expect(shared)
+        #expect(first.image === second.image)
+    }
+
+    @Test func theCacheStaysBoundedAndKeepsWorking() throws {
+        for index in 0..<700 { _ = MathRenderer.render("z_{\(index)}", fontSize: 11, display: false) }
+        guard case .success(let first) = MathRenderer.render("z_{699}", fontSize: 11, display: false),
+              case .success(let second) = MathRenderer.render("z_{699}", fontSize: 11, display: false) else {
+            Issue.record("render failed")
+            return
+        }
+        #expect(first.image === second.image, "the newest entries survive the clean-up")
     }
 }
 

@@ -1,5 +1,6 @@
 import MarkdownCore
 import SwiftUI
+import WebRenderKit
 
 /// The rendered document. Pure SwiftUI: one view per top-level block, each
 /// tagged with its BlockID so sync-scroll can target it later.
@@ -9,16 +10,20 @@ public struct MarkdownPreview: View {
     private let theme: PreviewTheme
     private let reloadToken: Int
     private let search: PreviewSearch?
+    private let webRenderer: (any WebRendering)?
 
     /// - Parameters:
     ///   - reloadToken: change it to make images load again (the document was reloaded from disk).
     ///   - search: the window's find-in-preview state; nil turns find off.
-    public init(rendered: RenderedDocument, baseURL: URL?, theme: PreviewTheme = .github, reloadToken: Int = 0, search: PreviewSearch? = nil) {
+    ///   - webRenderer: draws diagrams, KaTeX fallback formulas and complex HTML; nil shows their source.
+    public init(rendered: RenderedDocument, baseURL: URL?, theme: PreviewTheme = .github, reloadToken: Int = 0, search: PreviewSearch? = nil,
+                webRenderer: (any WebRendering)? = nil) {
         self.rendered = rendered
         self.baseURL = baseURL
         self.theme = theme
         self.reloadToken = reloadToken
         self.search = search
+        self.webRenderer = webRenderer
     }
 
     public var body: some View {
@@ -49,6 +54,7 @@ public struct MarkdownPreview: View {
         .environment(\.documentBaseURL, baseURL)
         .environment(\.previewReloadToken, reloadToken)
         .environment(\.previewSearch, search)
+        .environment(\.webRenderer, webRenderer)
         .environment(\.openURL, OpenURLAction { url in
             LinkPolicy.decision(for: url) == .openExternally ? .systemAction : .discarded
         })

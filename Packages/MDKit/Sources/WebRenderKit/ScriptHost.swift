@@ -9,6 +9,7 @@ final class ScriptHost: RenderHost {
     private let webView: WKWebView
     private let lock = NavigationLock()
     private var isInvalid = false
+    private var hasTransparentBackground = true
 
     var isUsable: Bool { !isInvalid }
     var onTerminate: (() -> Void)? {
@@ -21,12 +22,14 @@ final class ScriptHost: RenderHost {
     }
 
     /// Creates the web view and loads the shell page.
-    static func start() async throws -> ScriptHost {
+    /// - Parameter transparent: false keeps WebKit's own white page background, as on a macOS without the switch
+    ///   `makeBackgroundTransparent` uses. For tests of that fallback.
+    static func start(transparent: Bool = true) async throws -> ScriptHost {
         guard let directory = resourcesDirectory else { throw RenderError.unavailable("The renderer resources are missing") }
         let shell = directory.appendingPathComponent("shell.html")
         guard FileManager.default.fileExists(atPath: shell.path) else { throw RenderError.unavailable("shell.html is missing") }
         let rules = try await NetworkBlocker.ruleList()
-        let host = ScriptHost(rules: rules)
+        let host = ScriptHost(rules: rules, transparent: transparent)
         host.lock.allowNextLoad(of: shell)
         try await host.lock.waitForLoad {
             host.webView.loadFileURL(shell, allowingReadAccessTo: directory)
@@ -35,7 +38,7 @@ final class ScriptHost: RenderHost {
         return host
     }
 
-    private init(rules: WKContentRuleList) {
+    private init(rules: WKContentRuleList, transparent: Bool) {
         let configuration = WKWebViewConfiguration()
         configuration.websiteDataStore = .nonPersistent()
         configuration.preferences.javaScriptCanOpenWindowsAutomatically = false
@@ -45,6 +48,7 @@ final class ScriptHost: RenderHost {
         webView.navigationDelegate = lock
         webView.uiDelegate = lock
         webView.autoresizingMask = [.width, .height]
+        hasTransparentBackground = transparent && webView.makeBackgroundTransparent()
         window.contentView = webView
     }
 
@@ -71,6 +75,7 @@ final class ScriptHost: RenderHost {
         var options: [String: Any] = [
             "dark": request.appearance == .dark,
             "foreground": request.foreground,
+            "background": hasTransparentBackground ? "transparent" : request.background,
             "fontSize": request.fontSize,
             "fontFamily": "-apple-system, BlinkMacSystemFont, 'Helvetica Neue', sans-serif",
         ]

@@ -22,6 +22,9 @@ public struct RenderRequest: Hashable, Sendable {
     public var appearance: RenderAppearance
     /// CSS colour of text and lines, e.g. `#1f2328`.
     public var foreground: String
+    /// The preview's background. Pictures are transparent, so this is only painted if WebKit cannot make the
+    /// page background transparent.
+    public var background: String
     /// Body font size in points, so formulas match the text around them.
     public var fontSize: Double
     /// Width in points that HTML blocks are laid out at.
@@ -30,11 +33,12 @@ public struct RenderRequest: Hashable, Sendable {
     public var style: String
 
     public init(kind: RenderKind, source: String, appearance: RenderAppearance = .light, foreground: String = "#1f2328",
-                fontSize: Double = 15, width: Double = 700, style: String = "") {
+                background: String = "#ffffff", fontSize: Double = 15, width: Double = 700, style: String = "") {
         self.kind = kind
         self.source = source
         self.appearance = appearance
         self.foreground = foreground
+        self.background = background
         self.fontSize = fontSize
         self.width = width
         self.style = style

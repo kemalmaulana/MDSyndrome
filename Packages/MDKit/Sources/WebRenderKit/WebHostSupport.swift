@@ -128,3 +128,21 @@ final class NavigationLock: NSObject, WKNavigationDelegate, WKUIDelegate {
 
     func webView(_ webView: WKWebView, runJavaScriptTextInputPanelWithPrompt prompt: String, defaultText: String?, initiatedByFrame frame: WKFrameInfo) async -> String? { nil }
 }
+
+
+extension WKWebView {
+    /// Makes the page background transparent, so the pictures made from it sit on whatever the preview
+    /// draws behind them (white, near-black, a table stripe): WebKit paints a white page background into a
+    /// PDF otherwise, and no public API turns that off. `_drawsBackground` is the long-standing switch
+    /// behind it, used only if this web view really has it. Returns whether the background is transparent;
+    /// when it is not, the host paints `RenderRequest.background` instead, which is right on the preview's
+    /// own background and nowhere else.
+    @MainActor
+    @discardableResult
+    func makeBackgroundTransparent() -> Bool {
+        underPageBackgroundColor = .clear
+        guard responds(to: NSSelectorFromString("_setDrawsBackground:")) else { return false }
+        setValue(false, forKey: "drawsBackground")
+        return true
+    }
+}

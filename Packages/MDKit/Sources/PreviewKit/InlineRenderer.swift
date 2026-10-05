@@ -58,14 +58,33 @@ public enum InlineRenderer {
         }
     }
 
+    /// Formulas outside any emphasis or link that SwiftMath cannot typeset: the ones a KaTeX picture can replace.
+    @MainActor
+    static func failingFormulas(_ inlines: [Inline], fontSize: Double, dark: Bool) -> [FormulaKey] {
+        let mathCount = inlines.reduce(0) { if case .math = $1 { $0 + 1 } else { $0 } }
+        guard mathCount > 0, mathCount <= maxTypesetFormulas else { return [] }
+        var keys: [FormulaKey] = []
+        for case .math(let latex, let display) in inlines {
+            guard case .failure = MathRenderer.render(latex, fontSize: fontSize, display: display) else { continue }
+            let key = FormulaKey(latex: latex, display: display, fontSize: fontSize, dark: dark)
+            if !keys.contains(key) { keys.append(key) }
+        }
+        return keys
+    }
+
     /// Text with native math: top-level `.math` inlines become typeset images sitting on the baseline.
     /// `highlights` colour find matches; their offsets count the text characters only (formulas have none).
+    /// `pictures` are KaTeX renderings of formulas SwiftMath rejected.
     @MainActor
-    static func text(_ inlines: [Inline], theme: PreviewTheme, fontSize: Double? = nil, highlights: [SearchHighlight]) -> Text {
+    static func text(_ inlines: [Inline], theme: PreviewTheme, fontSize: Double? = nil, highlights: [SearchHighlight],
+                     pictures: [FormulaKey: FormulaPicture] = [:], dark: Bool = false) -> Text {
+        let size = fontSize ?? theme.bodyFontSize
         let parts: [Text] = highlightedPieces(inlines, theme: theme, highlights: highlights).map { piece in
             switch piece {
             case .text(let attributed): Text(attributed)
-            case .math(let latex, let display): mathText(latex, display: display, fontSize: fontSize ?? theme.bodyFontSize, theme: theme)
+            case .math(let latex, let display):
+                mathText(latex, display: display, fontSize: size, theme: theme,
+                         picture: pictures[FormulaKey(latex: latex, display: display, fontSize: size, dark: dark)])
             }
         }
         return concatenate(parts[...])
@@ -88,10 +107,13 @@ public enum InlineRenderer {
     }
 
     @MainActor
-    private static func mathText(_ latex: String, display: Bool, fontSize: Double, theme: PreviewTheme) -> Text {
+    private static func mathText(_ latex: String, display: Bool, fontSize: Double, theme: PreviewTheme, picture: FormulaPicture?) -> Text {
         switch MathRenderer.render(latex, fontSize: fontSize, display: display) {
         case .success(let math):
             return Text(Image(nsImage: math.image).renderingMode(.template)).baselineOffset(-math.descent)
+        case .failure where picture != nil:
+            // KaTeX drew what SwiftMath could not, in the text colour it was asked for.
+            return Text(Image(nsImage: picture!.image)).baselineOffset(-picture!.baseline)
         case .failure:
             var source = AttributedString(latex)
             source.inlinePresentationIntent = .code

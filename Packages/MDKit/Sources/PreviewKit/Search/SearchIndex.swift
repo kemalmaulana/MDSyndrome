@@ -26,8 +26,9 @@ enum SearchIndex {
         case .paragraph(let content):
             // A paragraph with images is laid out word by word (or as a row of pictures), not as one text.
             if !content.containsImage { add(0, InlineRenderer.searchText(content)) }
-        case .codeBlock(_, let code):
-            add(0, code)
+        case .codeBlock(let language, let code):
+            // A diagram is a picture; its source shows only when drawing failed, and is not searched.
+            if DiagramLanguage.kind(of: language) == nil { add(0, code) }
         case .blockQuote(let children):
             for child in children { collect(child, topLevel: topLevel, into: &runs) }
         case .list(let list):

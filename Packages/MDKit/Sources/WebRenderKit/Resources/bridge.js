@@ -100,6 +100,7 @@
     render: function (kind, source, options) {
       stage().replaceChildren();
       stage().removeAttribute('style');
+      document.documentElement.style.background = options.background || 'transparent';
       if (kind === 'mermaid') return mermaidRender(source, options);
       if (kind === 'graphviz') return graphvizRender(source, options);
       if (kind === 'katex') return katexRender(source, options);

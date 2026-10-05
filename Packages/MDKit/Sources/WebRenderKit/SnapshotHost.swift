@@ -9,6 +9,7 @@ final class SnapshotHost: RenderHost {
     private let webView: WKWebView
     private let lock = NavigationLock()
     private var isInvalid = false
+    private var hasTransparentBackground = true
 
     var isUsable: Bool { !isInvalid }
     var onTerminate: (() -> Void)? {
@@ -16,14 +17,14 @@ final class SnapshotHost: RenderHost {
         set { lock.onTerminate = newValue }
     }
 
-    static func start() async throws -> SnapshotHost {
+    static func start(transparent: Bool = true) async throws -> SnapshotHost {
         let rules = try await NetworkBlocker.ruleList()
-        let host = SnapshotHost(rules: rules)
+        let host = SnapshotHost(rules: rules, transparent: transparent)
         host.window.orderFrontRegardless()
         return host
     }
 
-    private init(rules: WKContentRuleList) {
+    private init(rules: WKContentRuleList, transparent: Bool) {
         let configuration = WKWebViewConfiguration()
         configuration.websiteDataStore = .nonPersistent()
         configuration.preferences.javaScriptCanOpenWindowsAutomatically = false
@@ -33,6 +34,7 @@ final class SnapshotHost: RenderHost {
         webView.navigationDelegate = lock
         webView.uiDelegate = lock
         webView.autoresizingMask = [.width, .height]
+        hasTransparentBackground = transparent && webView.makeBackgroundTransparent()
         window.contentView = webView
     }
 
@@ -49,13 +51,13 @@ final class SnapshotHost: RenderHost {
     }
 
     /// The page around the block. The CSP allows only inline styles and `data:` images and fonts.
-    static func document(body: String, style: String, foreground: String, fontSize: Double, width: Double) -> String {
+    static func document(body: String, style: String, foreground: String, background: String, fontSize: Double, width: Double) -> String {
         """
         <!doctype html>
         <html><head><meta charset="utf-8">
         <meta http-equiv="Content-Security-Policy" content="default-src 'none'; img-src data:; style-src 'unsafe-inline'; font-src data:">
         <style>
-        html, body { margin: 0; padding: 0; background: transparent; }
+        html, body { margin: 0; padding: 0; background: \(background); }
         body { width: \(Int(width))px; color: \(foreground); font: \(fontSize)px/1.5 -apple-system, BlinkMacSystemFont, 'Helvetica Neue', sans-serif; overflow-wrap: anywhere; }
         img { max-width: 100%; }
         \(style)
@@ -69,7 +71,8 @@ final class SnapshotHost: RenderHost {
         guard case .html = request.kind else { throw RenderError.unavailable("The snapshot host draws HTML only") }
         let width = min(max(request.width, 120), 4_000)
         window.resizeContent(to: CGSize(width: width, height: 600))
-        let html = Self.document(body: request.source, style: request.style, foreground: request.foreground, fontSize: request.fontSize, width: width)
+        let html = Self.document(body: request.source, style: request.style, foreground: request.foreground,
+                                 background: hasTransparentBackground ? "transparent" : request.background, fontSize: request.fontSize, width: width)
         lock.allowNextLoad(of: URL(string: "about:blank")!)
         try await lock.waitForLoad {
             webView.loadHTMLString(html, baseURL: nil)

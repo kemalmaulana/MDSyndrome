@@ -22,11 +22,6 @@ struct CodeBlockView: View {
                 if let language {
                     Text(language).font(.caption).foregroundStyle(theme.secondaryText.color)
                 }
-                if isDiagram {
-                    Text("Diagram preview arrives in a later version")
-                        .font(.caption2)
-                        .foregroundStyle(theme.secondaryText.color)
-                }
                 Spacer()
                 Button {
                     NSPasteboard.general.clearContents()
@@ -49,10 +44,5 @@ struct CodeBlockView: View {
             }
         }
         .background(theme.codeBackground.color, in: RoundedRectangle(cornerRadius: 6))
-    }
-
-    /// Mermaid / Graphviz fences render as diagrams once WebRenderKit lands (Plan 3).
-    private var isDiagram: Bool {
-        ["mermaid", "dot", "graphviz"].contains(language?.lowercased() ?? "")
     }
 }
