@@ -37,7 +37,7 @@ public final class EditorCoordinator: NSObject, NSTextViewDelegate {
         appliedConfiguration = configuration
         textView.font = configuration.font
         textView.defaultParagraphStyle = configuration.paragraphStyle
-        textView.typingAttributes = configuration.textAttributes
+        textView.typingAttributes = configuration.textAttributes(foreground: .textColor)
         textView.textContainerInset = NSSize(width: configuration.horizontalInset, height: configuration.verticalInset)
         restyleAll()
     }
@@ -82,6 +82,6 @@ public final class EditorCoordinator: NSObject, NSTextViewDelegate {
 
     private func restyleAll() {
         guard let textView, let storage = textView.textStorage, let configuration = appliedConfiguration else { return }
-        storage.setAttributes(configuration.textAttributes, range: NSRange(location: 0, length: storage.length))
+        storage.setAttributes(configuration.textAttributes(foreground: .textColor), range: NSRange(location: 0, length: storage.length))
     }
 }
