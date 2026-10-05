@@ -1,15 +1,23 @@
 import EditorKit
 import SwiftUI
 
-/// The window toolbar: the layout picker on the leading side, format buttons on the trailing side.
+/// The window toolbar: the outline toggle and the layout picker on the leading side, format buttons on the trailing side.
 /// It is customizable (View → Customize Toolbar…): buttons can be reordered, removed and restored.
 /// Rarely used formats live in one "More" menu so the default set fits a narrow window.
 struct DocumentToolbar: CustomizableToolbarContent {
     @Binding var layoutMode: LayoutMode
+    @Binding var outlineVisible: Bool
     let editor: EditorController
     let editorIsVisible: Bool
 
     var body: some CustomizableToolbarContent {
+        ToolbarItem(id: "outline", placement: .navigation) {
+            Button { outlineVisible.toggle() } label: {
+                Label("Outline", systemImage: "sidebar.leading")
+            }
+            .help(outlineVisible ? "Hide the outline (⌃⌘S)" : "Show the outline (⌃⌘S)")
+            .accessibilityIdentifier("outline-toggle")
+        }
         ToolbarItem(id: "layout", placement: .navigation) {
             Picker("Layout", selection: $layoutMode) {
                 ForEach(LayoutMode.allCases) { mode in

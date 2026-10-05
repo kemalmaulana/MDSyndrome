@@ -3,6 +3,7 @@ import SwiftUI
 
 struct ViewCommands: Commands {
     @FocusedBinding(\.layoutMode) private var layoutMode
+    @FocusedBinding(\.outlineVisible) private var outlineVisible
     @AppStorage(EditorTheme.storageKey) private var editorThemeName = EditorTheme.tomorrowPlus.name
     @AppStorage("syncScroll") private var syncScroll = true
 
@@ -14,6 +15,9 @@ struct ViewCommands: Commands {
                     .disabled(layoutMode == nil)
             }
             Divider()
+            Button(outlineVisible == true ? "Hide Outline" : "Show Outline") { outlineVisible?.toggle() }
+                .keyboardShortcut("s", modifiers: [.control, .command])
+                .disabled(outlineVisible == nil)
             Toggle("Scroll Editor and Preview Together", isOn: $syncScroll)
             Divider()
             Picker("Editor Theme", selection: $editorThemeName) {

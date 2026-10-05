@@ -47,6 +47,9 @@ final class SyncScrollCoordinator {
         didSet { if isEnabled, !oldValue { catchUp() } }
     }
     private(set) var driver: Driver = .none
+    /// Told the first visible source line whenever the user moves a pane (or navigation takes the window
+    /// somewhere), whether or not scrolling together is on. The outline highlights the heading it falls under.
+    var onPosition: ((Int) -> Void)?
 
     private weak var editor: (any EditorScrolling)?
     private weak var preview: (any PreviewScrolling)?
@@ -105,6 +108,7 @@ final class SyncScrollCoordinator {
     /// scrolling together is on.
     func navigate(to id: BlockID) {
         driver = .none
+        if let line = sourceMap.startLine(of: id) { onPosition?(line) }
         if previewIsVisible {
             previewBlock = id
             previewEcho = (id, clock() + Self.echoWindow)
@@ -118,15 +122,17 @@ final class SyncScrollCoordinator {
     private var isActive: Bool { isEnabled && editorIsVisible && previewIsVisible }
 
     func editorDidScroll(_ line: Int) {
-        guard isActive else { return }
         if let echo = editorEcho, clock() < echo.until, abs(line - echo.line) <= Self.echoLineTolerance { return }
+        onPosition?(line)
+        guard isActive else { return }
         driver = .editor
         scrollPreview(toLine: line)
     }
 
     func previewDidScroll(_ id: BlockID) {
-        guard isActive else { return }
         if let echo = previewEcho, clock() < echo.until, echo.id == id { return }
+        if let line = sourceMap.startLine(of: id) { onPosition?(line) }
+        guard isActive else { return }
         driver = .preview
         previewBlock = id
         if let line = sourceMap.startLine(of: id) { scrollEditor(toLine: line) }

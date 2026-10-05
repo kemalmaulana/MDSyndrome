@@ -33,4 +33,5 @@ enum LayoutMode: String, CaseIterable, Identifiable {
 
 extension FocusedValues {
     @Entry var layoutMode: Binding<LayoutMode>?
+    @Entry var outlineVisible: Binding<Bool>?
 }

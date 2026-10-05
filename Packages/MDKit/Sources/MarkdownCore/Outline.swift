@@ -16,4 +16,16 @@ public enum Outline {
             OutlineItem(id: $0.id, level: $0.level, title: $0.text, slug: $0.slug, line: $0.line)
         }
     }
+
+    /// The heading a document is at when its first visible line is `line` (1-based): the last item that starts on or
+    /// before it. nil above the first heading. `items` are in document order, as `make(from:)` returns them.
+    public static func current(in items: [OutlineItem], atLine line: Int) -> OutlineItem? {
+        var low = 0
+        var high = items.count
+        while low < high {
+            let middle = (low + high) / 2
+            if items[middle].line <= line { low = middle + 1 } else { high = middle }
+        }
+        return low == 0 ? nil : items[low - 1]
+    }
 }

@@ -19,6 +19,10 @@ struct DocumentWindow: View {
     /// Keeps the two panes at the same place in the document.
     @State private var sync = SyncScrollCoordinator()
     @AppStorage("syncScroll") private var syncScroll = true
+    /// The outline column (⌃⌘S); closed until the person opens it.
+    @SceneStorage("outlineVisible") private var outlineVisible = false
+    /// The heading the document is at, for the outline's highlight.
+    @State private var currentHeading: BlockID?
     /// Where Find goes in the split layout: the pane the user clicked or typed in last.
     @State private var activePane: Pane = .editor
     @SceneStorage("layoutMode") private var layoutMode: LayoutMode = .split
@@ -26,26 +30,36 @@ struct DocumentWindow: View {
     @AppStorage(EditorTheme.storageKey) private var editorThemeName = EditorTheme.tomorrowPlus.name
 
     private var editorIsVisible: Bool { layoutMode != .preview }
+    private static let outlineWidth: Double = 220
 
     var body: some View {
-        VStack(spacing: 0) {
-            PaneLayout(mode: layoutMode, ratio: $splitRatio) {
-                MarkdownEditorView(text: $document.text, theme: EditorTheme.named(editorThemeName),
-                                   isHidden: !editorIsVisible, controller: editor)
-            } preview: {
-                MarkdownPreview(rendered: session.rendered, baseURL: fileURL?.deletingLastPathComponent(), reloadToken: previewReloadToken,
-                                search: layoutMode == .editor ? nil : previewSearch, webRenderer: webRenderer, scroller: previewScroller,
-                                linkHandler: { LinkOpener.handle($0, window: NSApp.keyWindow) })
-                    .simultaneousGesture(TapGesture().onEnded { activePane = .preview })
+        HStack(spacing: 0) {
+            if outlineVisible {
+                OutlineSidebar(items: session.rendered.outline, current: currentHeading, select: { sync.navigate(to: $0.id) })
+                    .frame(width: Self.outlineWidth)
+                Divider()
             }
-            Divider()
-            StatusBar(stats: session.rendered.stats)
+            VStack(spacing: 0) {
+                PaneLayout(mode: layoutMode, ratio: $splitRatio) {
+                    MarkdownEditorView(text: $document.text, theme: EditorTheme.named(editorThemeName),
+                                       isHidden: !editorIsVisible, controller: editor)
+                } preview: {
+                    MarkdownPreview(rendered: session.rendered, baseURL: fileURL?.deletingLastPathComponent(), reloadToken: previewReloadToken,
+                                    search: layoutMode == .editor ? nil : previewSearch, webRenderer: webRenderer, scroller: previewScroller,
+                                    linkHandler: { LinkOpener.handle($0, window: NSApp.keyWindow) })
+                        .simultaneousGesture(TapGesture().onEnded { activePane = .preview })
+                }
+                Divider()
+                StatusBar(stats: session.rendered.stats)
+            }
+            .frame(minWidth: 600)
         }
-        .frame(minWidth: 600, minHeight: 400)
+        .frame(minHeight: 400)
         .toolbar(id: "document") {
-            DocumentToolbar(layoutMode: $layoutMode, editor: editor, editorIsVisible: editorIsVisible)
+            DocumentToolbar(layoutMode: $layoutMode, outlineVisible: $outlineVisible, editor: editor, editorIsVisible: editorIsVisible)
         }
         .focusedSceneValue(\.layoutMode, $layoutMode)
+        .focusedSceneValue(\.outlineVisible, $outlineVisible)
         .focusedSceneValue(\.editorController, editorIsVisible ? editor : nil)
         .focusedSceneValue(\.findRouter, FindRouter(editor: editorIsVisible ? editor : nil, preview: layoutMode == .editor ? nil : previewSearch,
                                                    layout: layoutMode, pane: activePane))
@@ -59,6 +73,10 @@ struct DocumentWindow: View {
             }
             sync.attach(editor: editor, preview: previewScroller)
             sync.isEnabled = syncScroll
+            sync.onPosition = { line in
+                let heading = Outline.current(in: session.rendered.outline, atLine: line)?.id
+                if heading != currentHeading { currentHeading = heading }
+            }
             previewScroller.onNavigate = { [weak sync] id in sync?.navigate(to: id) }
         }
         .onChange(of: syncScroll) { _, enabled in sync.isEnabled = enabled }
