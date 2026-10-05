@@ -3,10 +3,12 @@ import EditorKit
 import MarkdownCore
 import PreviewKit
 import SwiftUI
+import WebRenderKit
 
 struct DocumentWindow: View {
     @Binding var document: MarkdownFileDocument
     let fileURL: URL?
+    let webRenderer: WebRenderer
 
     @State private var session = DocumentSession()
     @State private var editor = EditorController()
@@ -28,7 +30,7 @@ struct DocumentWindow: View {
                                    isHidden: !editorIsVisible, controller: editor)
             } preview: {
                 MarkdownPreview(rendered: session.rendered, baseURL: fileURL?.deletingLastPathComponent(), reloadToken: previewReloadToken,
-                                search: layoutMode == .editor ? nil : previewSearch)
+                                search: layoutMode == .editor ? nil : previewSearch, webRenderer: webRenderer)
                     .simultaneousGesture(TapGesture().onEnded { activePane = .preview })
             }
             Divider()

@@ -51,11 +51,11 @@ It runs natively on Apple Silicon, has no Electron, and renders its preview nati
 | "How long is this thing?" | Live words, characters, lines and reading time | ✅ |
 | "Where was that again?" | Find in the editor and in the preview, with highlighted matches, a match count and next/previous | ✅ v0.3 |
 | "Documents just work" | New, Open, Recent, autosave, Versions, tabs, undo that behaves. A file another program saved is picked up when you come back to the app, or on <kbd>⌘R</kbd> | ✅ |
-| `$E = mc^2$` | Native LaTeX math, inline and display (SwiftMath). A formula it can't typeset shows its source in red | ✅ v0.2 |
+| `$E = mc^2$` | Native LaTeX math, inline and display (SwiftMath). A formula it can't typeset is drawn by KaTeX instead (v0.4), and if that fails too its source shows in red | ✅ v0.2 |
 | ```` ```swift ```` | Syntax-highlighted code blocks in 20+ languages, GitHub colours in light and dark | ✅ v0.2 |
 | "My README looks broken" | `<p align="center">`, `<img width>`, badge rows, `<details>`, `<kbd>`, `<sub>`/`<sup>` and YAML front matter render natively | ✅ v0.2 |
 | `==highlight==` | Marked text, MacDown-style | ✅ v0.2 |
-| ```` ```mermaid ```` | Mermaid and Graphviz diagrams | 🧪 v0.4 |
+| ```` ```mermaid ```` · ```` ```dot ```` | Mermaid and Graphviz diagrams as sharp vector pictures that follow light and dark mode. A typo shows the library's message above the source | ✅ v0.4 |
 | "Where are my editor colours and shortcuts?" | Markdown syntax highlighting in six themes (Tomorrow+ by default), lists that continue, auto-pairing, a Format menu and toolbar: <kbd>⌘B</kbd> <kbd>⌘I</kbd> <kbd>⌘K</kbd> <kbd>⌘1</kbd>–<kbd>⌘6</kbd> | ✅ v0.3 |
 | "I lose my place" | Synced scrolling and an outline sidebar | 🧪 v0.5 |
 | "Make it pretty" | Preview and editor themes, a Settings window, your own themes as JSON | 🧪 v0.6 |
@@ -106,20 +106,21 @@ flowchart LR
     R --> B["Status bar"]
 ```
 
-<sub>GitHub draws that diagram with Mermaid's JavaScript. MDSyndrome will draw the same diagram in v0.4. It's the one place JavaScript gets in; see the pledge below.</sub>
+<sub>GitHub draws that diagram with Mermaid's JavaScript, and so does MDSyndrome since v0.4. It's one of the few places JavaScript gets in; see the pledge below.</sub>
 
 | Module | Organ | Job |
 |---|---|---|
 | [`MarkdownCore`](Packages/MDKit/Sources/MarkdownCore) | 🧠 brain | Wraps cmark-gfm's C API into an immutable `Sendable` AST. Each block has a stable ID and the source lines it came from. Also protects math, builds heading slugs, the outline and stats |
 | [`PreviewKit`](Packages/MDKit/Sources/PreviewKit) | 👁 eyes | One SwiftUI view per block, the GitHub light/dark theme, image loading and link safety |
 | [`EditorKit`](Packages/MDKit/Sources/EditorKit) | ✋ hands | An NSTextView on TextKit 2: live Markdown highlighting, themes, the pure edit transforms behind list continuation and the Format menu, and one-step undo that reaches the document |
+| [`WebRenderKit`](Packages/MDKit/Sources/WebRenderKit) | 🔭 lens | The only module that imports WebKit. Draws diagrams, KaTeX formulas and complex HTML in hidden, locked-down web views and returns vector pictures, with a cache, one request at a time, a timeout, and recovery if the web process dies |
 | [`SyntaxHighlighting`](Packages/MDKit/Sources/SyntaxHighlighting) | 🎨 colour | The table-driven code lexer the preview uses for fenced code blocks: linear time, no dependencies |
 | [`MDSyndrome`](MDSyndrome) | 🫀 heart | `DocumentGroup`, the debounced render session, the split layout and commands |
 
 ```text
 .
 ├── MDSyndrome/              app target (SwiftUI)
-├── Packages/MDKit/          MarkdownCore · PreviewKit · EditorKit · SyntaxHighlighting (+ tests)
+├── Packages/MDKit/          MarkdownCore · PreviewKit · EditorKit · WebRenderKit · SyntaxHighlighting (+ tests)
 ├── MDSyndromeTests/         app unit tests        MDSyndromeUITests/  UI tests
 ├── Fixtures/kitchen-sink.md every supported feature in one file
 ├── design/                 logo & app-icon sources, exports, guidelines, README art
@@ -139,8 +140,19 @@ outputs images.
 | Code highlighting | ✅ built-in lexer | never |
 | LaTeX math | ✅ SwiftMath | KaTeX only for expressions SwiftMath can't handle |
 | Mermaid, Graphviz | — | ✅ no native implementation exists |
+| README HTML (`<p align>`, `<img width>`, `<details>`, `<kbd>`…) | ✅ native | never |
+| Tables and styled blocks in raw HTML | — | none: drawn by WebKit with JavaScript switched off |
 
-`make lint` fails the build if anything outside `WebRenderKit` imports WebKit. Today **no** module does.
+Only the `WebRenderKit` module imports WebKit, and `make lint` fails the build if anything else does. The libraries are
+vendored byte for byte (mermaid 12.1.0, viz.js 3.31.0, KaTeX 0.19.0; checksums in [`VENDORED.md`](Packages/MDKit/VENDORED.md))
+and run in a web view nobody ever sees, which:
+
+- loads one fixed page that allows scripts from the app bundle only, and has no network (every other URL is blocked);
+- refuses navigation, popups and dialogs;
+- receives your document only as data handed to a function, never as script text; mermaid runs in `strict` mode and KaTeX with `trust: false`;
+- hands back a picture (PDF) and nothing else.
+
+A document with no diagram, no unusual formula and no complex HTML never starts WebKit at all.
 
 ## ⌨️ Reflexes
 
@@ -168,8 +180,8 @@ The divider between the panes can be dragged, and every window remembers its lay
 |---|---|---|:---:|
 | Plan 1 | M0 + M1 | Parser, native preview, editor, split window, documents, tests | ✅ |
 | Plan 2 | M2 (native) | Native LaTeX, code highlighting, HTML subset, `<details>`, front matter, `==highlight==` | ✅ |
-| Plan 3 | M3 | Editor syntax highlighting, themes, list continuation, formatting shortcuts, toolbar | ✅ |
-| Plan 4 | M2 (web) | WebRenderKit: Mermaid, Graphviz, KaTeX fallback, raw-HTML snapshots | 🔜 |
+| Plan 3 | M3 | Editor syntax highlighting, themes, list continuation, formatting shortcuts, toolbar; reload from disk, find in editor and preview | ✅ |
+| Plan 4 | M2 (web) | WebRenderKit: Mermaid, Graphviz, KaTeX fallback, raw-HTML snapshots | ✅ |
 | Plan 5 | M4 | Synced scrolling, outline sidebar, anchors, links between documents | |
 | Plan 6 | M5 | Themes and Settings | |
 | Plan 7 | M6 | Export to HTML and PDF, print | |
