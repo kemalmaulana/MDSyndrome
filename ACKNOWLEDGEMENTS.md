@@ -8,3 +8,4 @@ MDSyndrome includes the following third-party software.
 | [Inter](https://github.com/rsms/inter) | Typeface of the wordmark (converted to outlines in `design/icon`; not shipped in the app) | SIL Open Font License 1.1 |
 | [SwiftMath](https://github.com/mgriebling/SwiftMath) | Native LaTeX typesetting in the preview | MIT |
 | Math fonts bundled with SwiftMath (Latin Modern, TeX Gyre, XITS, Fira, Noto, Libertinus, …) | Glyphs for typeset formulas | SIL Open Font License 1.1 / GUST Font License |
+| Editor theme palettes (Tomorrow+, Tomorrow, Solarized Light/Dark, Mou Paper, Writer) | Colours and heading sizes follow the themes bundled with [MacDown](https://github.com/MacDownApp/macdown) (MIT). Tomorrow is by Chris Kempson (MIT) and Solarized by Ethan Schoonover (MIT). Only the colour values are used, no files | MIT |
