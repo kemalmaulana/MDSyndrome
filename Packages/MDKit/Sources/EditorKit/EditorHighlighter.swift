@@ -50,6 +50,22 @@ public final class EditorHighlighter: NSObject, NSTextStorageDelegate {
     var lineCount: Int { index.lineCount }
     var lineStates: [LineState] { states }
 
+    /// The 0-based line containing a UTF-16 `location` (the end of the text belongs to the last line).
+    func line(at location: Int) -> Int {
+        index.line(containing: Swift.max(0, Swift.min(location, index.length)))
+    }
+
+    /// Where a 0-based line starts, clamped to the document.
+    func location(ofLine line: Int) -> Int {
+        index.range(ofLine: Swift.max(0, Swift.min(line, index.lineCount - 1))).location
+    }
+
+    /// A 0-based line's range without its "\n"; nil when there is no such line.
+    func contentRange(ofLine line: Int) -> NSRange? {
+        guard line >= 0, line < index.lineCount else { return nil }
+        return index.contentRange(ofLine: line)
+    }
+
     /// The state at the start of the line containing `location`.
     func lineState(at location: Int) -> LineState? {
         guard !states.isEmpty else { return nil }

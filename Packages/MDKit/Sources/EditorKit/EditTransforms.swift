@@ -346,6 +346,22 @@ public enum EditTransforms {
                         selection: NSRange(location: lines.location + 4, length: (body as NSString).length))
     }
 
+    // MARK: Task items (PV-11)
+
+    private static let taskItem = try! NSRegularExpression(pattern: #"^[ \t]*(?:>[ \t]*)*(?:[-*+]|\d{1,9}[.)])[ \t]+\[([ xX])\](?=[ \t]|$)"#)
+
+    /// A click on a task checkbox in the preview: flips the `[ ]` / `[x]` of the list item written on the line
+    /// `lineRange` covers (without its newline). nil when the line holds no task marker, which is how a line
+    /// number that went stale (the text changed since the preview was drawn) is told from a good one.
+    public static func toggleTask(in text: NSString, lineRange: NSRange, selection: NSRange) -> TextEdit? {
+        guard lineRange.location != NSNotFound, NSMaxRange(lineRange) <= text.length else { return nil }
+        let line = text.substring(with: lineRange) as NSString
+        guard let match = taskItem.firstMatch(in: line as String, range: NSRange(location: 0, length: line.length)) else { return nil }
+        let mark = match.range(at: 1)
+        let replacement = line.substring(with: mark) == " " ? "x" : " "
+        return TextEdit(range: NSRange(location: lineRange.location + mark.location, length: 1), replacement: replacement, selection: selection)
+    }
+
     // MARK: Helpers
 
     /// End of the line's content, excluding its line terminator.

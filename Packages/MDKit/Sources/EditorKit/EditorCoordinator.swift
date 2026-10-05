@@ -10,6 +10,7 @@ public final class EditorCoordinator: NSObject, NSTextViewDelegate {
     public private(set) weak var textView: NSTextView?
     private weak var scrollView: NSScrollView?
     private var highlighter: EditorHighlighter?
+    private var scrollSupport: EditorScrollSupport?
     private var isApplyingExternalText = false
     private var lastWrittenText: String?
     /// Counts character edits; the binding is written once per count, whichever callback sees it first.
@@ -45,6 +46,16 @@ public final class EditorCoordinator: NSObject, NSTextViewDelegate {
 
         let highlighter = EditorHighlighter(theme: theme, configuration: configuration)
         self.highlighter = highlighter
+        if let scrollView {
+            let support = EditorScrollSupport(
+                textView: textView, scrollView: scrollView,
+                lineAt: { [weak highlighter] in highlighter?.line(at: $0) ?? 0 },
+                locationOfLine: { [weak highlighter] in highlighter?.location(ofLine: $0) ?? 0 },
+                rangeOfLine: { [weak highlighter] in highlighter?.contentRange(ofLine: $0) },
+                report: { [weak controller] line in controller?.onScroll?(line) })
+            controller?.scrolling = support
+            scrollSupport = support
+        }
         textView.lineStateProvider = { [weak highlighter] location in highlighter?.lineState(at: location) }
         // Undo and redo change the text without telling the text view's delegate, so the binding is
         // fed from the text storage, which sees every change.
