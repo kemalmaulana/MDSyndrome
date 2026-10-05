@@ -17,8 +17,16 @@ final class ScriptHost: RenderHost {
         set { lock.onTerminate = newValue }
     }
 
+    /// The folder that holds `shell.html` and the libraries. Xcode builds a bundle with `Contents/Resources/Resources`;
+    /// SwiftPM's own bundle keeps `Resources` at its root, and whether `resourceURL` already points into it depends on
+    /// the toolchain, so the candidates are tried in turn.
     nonisolated static var resourcesDirectory: URL? {
-        Bundle.module.resourceURL?.absoluteURL.appendingPathComponent("Resources", isDirectory: true)
+        let bundle = Bundle.module
+        let candidates = [bundle.resourceURL?.appendingPathComponent("Resources", isDirectory: true),
+                          bundle.resourceURL,
+                          bundle.bundleURL.appendingPathComponent("Resources", isDirectory: true)]
+        return candidates.compactMap { $0?.absoluteURL }
+            .first { FileManager.default.fileExists(atPath: $0.appendingPathComponent("shell.html").path) }
     }
 
     /// Creates the web view and loads the shell page.
