@@ -18,7 +18,7 @@ struct DocumentWindow: View {
     @State private var previewScroller = PreviewScroller()
     /// Keeps the two panes at the same place in the document.
     @State private var sync = SyncScrollCoordinator()
-    @AppStorage("syncScroll") private var syncScroll = true
+    @State private var model = SettingsModel.shared
     /// The outline column (⌃⌘S); closed until the person opens it.
     @SceneStorage("outlineVisible") private var outlineVisible = false
     /// The heading the document is at, for the outline's highlight.
@@ -27,7 +27,15 @@ struct DocumentWindow: View {
     @State private var activePane: Pane = .editor
     @SceneStorage("layoutMode") private var layoutMode: LayoutMode = .split
     @SceneStorage("splitRatio") private var splitRatio: Double = 0.5
-    @AppStorage(EditorTheme.storageKey) private var editorThemeName = EditorTheme.tomorrowPlus.name
+
+    init(document: Binding<MarkdownFileDocument>, fileURL: URL?, webRenderer: WebRenderer) {
+        _document = document
+        self.fileURL = fileURL
+        self.webRenderer = webRenderer
+        // A new window opens in the layout the General settings ask for; later it remembers its own.
+        let openInPreview = UserDefaults.standard.bool(forKey: SettingsKey.openInPreview)
+        _layoutMode = SceneStorage(wrappedValue: openInPreview ? .preview : .split, "layoutMode")
+    }
 
     private var editorIsVisible: Bool { layoutMode != .preview }
     private static let outlineWidth: Double = 220
@@ -41,12 +49,12 @@ struct DocumentWindow: View {
             }
             VStack(spacing: 0) {
                 PaneLayout(mode: layoutMode, ratio: $splitRatio) {
-                    MarkdownEditorView(text: $document.text, theme: EditorTheme.named(editorThemeName),
-                                       isHidden: !editorIsVisible, controller: editor)
+                    MarkdownEditorView(text: $document.text, theme: model.editorTheme(named: model.settings.editorThemeName),
+                                       configuration: model.settings.editor, isHidden: !editorIsVisible, controller: editor)
                 } preview: {
-                    MarkdownPreview(rendered: session.rendered, baseURL: fileURL?.deletingLastPathComponent(), reloadToken: previewReloadToken,
+                    MarkdownPreview(rendered: session.rendered, baseURL: fileURL?.deletingLastPathComponent(), theme: model.previewTheme, reloadToken: previewReloadToken,
                                     search: layoutMode == .editor ? nil : previewSearch, webRenderer: webRenderer, scroller: previewScroller,
-                                    linkHandler: { LinkOpener.handle($0, window: NSApp.keyWindow) }, onToggleTask: toggleTask)
+                                    linkHandler: { LinkOpener.handle($0, window: NSApp.keyWindow) }, onToggleTask: toggleTask, loadRemoteImages: model.settings.loadRemoteImages)
                         .simultaneousGesture(TapGesture().onEnded { activePane = .preview })
                 }
                 Divider()
@@ -72,21 +80,28 @@ struct DocumentWindow: View {
                 sync.editorActivity()
             }
             sync.attach(editor: editor, preview: previewScroller)
-            sync.isEnabled = syncScroll
+            sync.isEnabled = model.settings.syncScroll
             sync.onPosition = { line in
                 let heading = Outline.current(in: session.rendered.outline, atLine: line)?.id
                 if heading != currentHeading { currentHeading = heading }
             }
             previewScroller.onNavigate = { [weak sync] id in sync?.previewDidNavigate(to: id) }
         }
-        .onChange(of: syncScroll) { _, enabled in sync.isEnabled = enabled }
+        .onChange(of: model.settings.syncScroll) { _, enabled in sync.isEnabled = enabled }
+        .onChange(of: model.settings.markdown) { _, options in
+            session.options = options
+            session.textDidChange(document.text)
+        }
         .onChange(of: layoutMode, initial: true) { _, mode in
             sync.layoutDidChange(editorVisible: mode != .preview, previewVisible: mode != .editor)
         }
         .onChange(of: session.renderCount, initial: true) { _, _ in sync.renderDidChange(session.rendered.sourceMap) }
         .onChange(of: previewSearch.isPresented) { _, isPresented in if isPresented { activePane = .preview } }
         .onChange(of: layoutMode) { _, mode in if mode == .editor { previewSearch.close() } }
-        .task { await session.renderNow(document.text) }
+        .task {
+            session.options = model.settings.markdown
+            await session.renderNow(document.text)
+        }
         .onChange(of: document.text) { _, newText in session.textDidChange(newText) }
         .onReceive(NotificationCenter.default.publisher(for: NSApplication.didBecomeActiveNotification)) { _ in pullChangesFromDisk() }
     }

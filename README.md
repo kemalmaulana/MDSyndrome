@@ -58,7 +58,7 @@ It runs natively on Apple Silicon, has no Electron, and renders its preview nati
 | ```` ```mermaid ```` · ```` ```dot ```` | Mermaid and Graphviz diagrams as sharp vector pictures that follow light and dark mode. A typo shows the library's message above the source | ✅ v0.4 |
 | "Where are my editor colours and shortcuts?" | Markdown syntax highlighting in six themes (Tomorrow+ by default), lists that continue, auto-pairing, a Format menu and toolbar: <kbd>⌘B</kbd> <kbd>⌘I</kbd> <kbd>⌘K</kbd> <kbd>⌘1</kbd>–<kbd>⌘6</kbd> | ✅ v0.3 |
 | "I lose my place" | The editor and the preview scroll together, block by block, even in a 1 MB document. An outline (<kbd>⌃⌘S</kbd>) lists the headings and takes both panes there. `#anchor` links, links to other Markdown files and footnote links (with a way back) work. Click a task's checkbox in the preview to tick it in the source | ✅ v0.5 |
-| "Make it pretty" | Preview and editor themes, a Settings window, your own themes as JSON | 🧪 v0.6 |
+| "Make it pretty" | A Settings window (<kbd>⌘,</kbd>) with General, Editor, Markdown and Preview tabs, applied live to every open document. Four preview themes (GitHub, Clearness, Solarized, System), six editor themes, preview zoom (<kbd>⌘+</kbd> <kbd>⌘−</kbd> <kbd>⌘0</kbd>), and your own themes as JSON files in `~/Library/Application Support/MDSyndrome/Themes` | ✅ v0.6 |
 | "Send it to my boss" | Export to HTML and PDF, and print | 🧪 v0.7 |
 
 ✅ ships today · 🧪 in clinical trials (see [the treatment plan](#-treatment-plan))
@@ -159,6 +159,9 @@ A document with no diagram, no unusual formula and no complex HTML never starts 
 | Keys | Action |
 |---|---|
 | <kbd>⌥⌘1</kbd> · <kbd>⌥⌘2</kbd> · <kbd>⌥⌘3</kbd> | Editor only · Editor & Preview · Preview only |
+| <kbd>⌘,</kbd> | Settings |
+| <kbd>⌘+</kbd> · <kbd>⌘−</kbd> · <kbd>⌘0</kbd> | Preview text bigger · smaller · actual size |
+| <kbd>⌃⌘S</kbd> | Show or hide the outline |
 | <kbd>⌘N</kbd> · <kbd>⌘O</kbd> · <kbd>⌘S</kbd> | New · Open · Save |
 | <kbd>⌘R</kbd> | Reload from Disk: read the file again, images included (asks first if you have unsaved edits) |
 | <kbd>⌘F</kbd> | Find in the pane you are working in: the editor's find bar (<kbd>⌥⌘F</kbd> adds Replace), or highlighted matches in the preview |
@@ -183,7 +186,7 @@ The divider between the panes can be dragged, and every window remembers its lay
 | Plan 3 | M3 | Editor syntax highlighting, themes, list continuation, formatting shortcuts, toolbar; reload from disk, find in editor and preview | ✅ |
 | Plan 4 | M2 (web) | WebRenderKit: Mermaid, Graphviz, KaTeX fallback, raw-HTML snapshots | ✅ |
 | Plan 5 | M4 | Synced scrolling, outline, anchors, links between documents, ticking tasks in the preview | ✅ |
-| Plan 6 | M5 | Themes and Settings | |
+| Plan 6 | M5 | Themes and Settings window, user theme folder | ✅ |
 | Plan 7 | M6 | Export to HTML and PDF, print | |
 | Plan 8 | M7 | Performance and accessibility pass, Quick Look extension, Homebrew cask | |
 
@@ -259,7 +262,7 @@ Releases are universal binaries, but the minimum is **macOS 26**. If your Intel 
 <details>
 <summary><b>Can I change the editor colours?</b></summary>
 
-Yes. **View → Editor Theme** switches between six built-in themes, with MacDown's Tomorrow+ as the default. The editor otherwise keeps MacDown's defaults (Menlo 14, same spacing and margins). A Settings window and your own JSON themes arrive in v0.6.
+Yes. **View → Editor Theme** (or **Settings → Editor**) switches between six built-in themes, with MacDown's Tomorrow+ as the default; the Settings window also sets the font, size, spacing and margins. Your own themes are JSON files in `~/Library/Application Support/MDSyndrome/Themes/Editor` and `…/Preview` (Settings → Editor → Reveal Themes Folder); a file that doesn't load is skipped and listed in Settings.
 </details>
 
 ## 📜 License & credits

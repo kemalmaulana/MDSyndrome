@@ -17,5 +17,7 @@ struct MDSyndromeApp: App {
             FormatCommands()
             FindCommands()
         }
+
+        Settings { SettingsView() }
     }
 }

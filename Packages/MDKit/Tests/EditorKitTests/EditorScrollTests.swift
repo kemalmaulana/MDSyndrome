@@ -245,3 +245,26 @@ private final class ScrollHarness {
         #expect(editor.controller.toggleTask(atLine: 4))
     }
 }
+
+@MainActor
+@Suite(.requiresWindowServer, .serialized) struct EditorOptionTests {
+    @Test func wrappingAndSpellCheckFollowTheConfiguration() async {
+        let editor = await ScrollHarness("a very long line " + String(repeating: "word ", count: 400))
+        defer { editor.close() }
+        #expect(editor.textView.textContainer?.widthTracksTextView == true)
+        #expect(!editor.textView.isContinuousSpellCheckingEnabled)
+        var configuration = EditorConfiguration.macDownDefaults
+        configuration.softWrap = false
+        configuration.spellCheck = true
+        editor.coordinator.apply(theme: .tomorrowPlus, configuration: configuration)
+        #expect(editor.textView.textContainer?.widthTracksTextView == false)
+        #expect(editor.scrollView.hasHorizontalScroller)
+        #expect(editor.textView.isContinuousSpellCheckingEnabled)
+        configuration.softWrap = true
+        configuration.spellCheck = false
+        editor.coordinator.apply(theme: .tomorrowPlus, configuration: configuration)
+        #expect(editor.textView.textContainer?.widthTracksTextView == true)
+        #expect(!editor.scrollView.hasHorizontalScroller)
+        #expect(!editor.textView.isContinuousSpellCheckingEnabled)
+    }
+}

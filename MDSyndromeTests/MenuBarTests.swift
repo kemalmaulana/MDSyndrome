@@ -67,6 +67,14 @@ extension Trait where Self == ConditionTrait {
         #expect(sync.keyEquivalent.isEmpty, "a switch, not a shortcut")
     }
 
+    @Test func theViewMenuHasZoomAndThemes() async throws {
+        let menu = try await menuBar()
+        let view = try #require(menu.items.first { $0.title == "View" }?.submenu)
+        let zoom = Dictionary(uniqueKeysWithValues: view.items.filter { $0.title.hasPrefix("Zoom") || $0.title == "Actual Size" }.map { ($0.title, $0.keyEquivalent) })
+        #expect(zoom["Zoom In"] == "+" && zoom["Zoom Out"] == "-" && zoom["Actual Size"] == "0")
+        #expect(view.items.contains { $0.title == "Preview Theme" } && view.items.contains { $0.title == "Editor Theme" })
+    }
+
     @Test func theEditMenuHasFindWithTheStandardShortcuts() async throws {
         let menu = try await menuBar()
         let edit = try #require(menu.items.first { $0.title == "Edit" }?.submenu)
