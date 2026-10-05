@@ -73,7 +73,7 @@ enum PictureProbe {
     /// RGBA of a pixel, 0…1.
     static func pixel(_ image: RenderedImage, x: Int = 1, y: Int = 1) -> (r: Double, g: Double, b: Double, a: Double)? {
         guard let color = bitmap(image)?.colorAt(x: x, y: y)?.usingColorSpace(.deviceRGB) else { return nil }
-        return (color.redComponent, color.greenComponent, color.blueComponent, color.alphaComponent)
+        return (Double(color.redComponent), Double(color.greenComponent), Double(color.blueComponent), Double(color.alphaComponent))
     }
 
     /// The share of pixels that are not fully transparent.
