@@ -46,6 +46,7 @@ import Testing
         let (document, textView) = try await open(url)
         defer { document.close() }
         #expect(textView.string == "# One\n")
+        #expect(NSDocumentController.shared.document(for: url) === document, "the window finds its document by the URL SwiftUI gives it")
 
         try "# Two\n\nEdited by another program.\n".write(to: url, atomically: true, encoding: .utf8)
         var reloaded: Bool?

@@ -160,6 +160,18 @@ private final class EditorHarness {
         #expect(focusEvents == 1, "taking focus is reported once, so the window can follow the user between panes")
     }
 
+    @Test func typingInTheEditorCountsAsWorkingInIt() throws {
+        // Clicking the preview leaves the keyboard in the editor, so a key press there has to say so.
+        // (A click does too, through mouseDown, which is not driven here: NSTextView tracks the mouse in a loop.)
+        let editor = EditorHarness("text")
+        var events = 0
+        editor.controller.onFocus = { events += 1 }
+        let typed = try #require(NSEvent.keyEvent(with: .keyDown, location: .zero, modifierFlags: [], timestamp: 0, windowNumber: editor.window.windowNumber,
+                                                  context: nil, characters: "a", charactersIgnoringModifiers: "a", isARepeat: false, keyCode: 0))
+        editor.textView.keyDown(with: typed)
+        #expect(events == 1)
+    }
+
     @Test func theFindBarCountsAsTheEditorHavingFocus() {
         let editor = EditorHarness("find me")
         editor.controller.find(.show)

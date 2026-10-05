@@ -14,7 +14,7 @@ public enum FindAction: Int, Sendable {
 public final class EditorController {
     weak var textView: MarkdownTextView?
 
-    /// Called when the editor takes keyboard focus. The window uses it to know which pane Find should search.
+    /// Called when the user works in the editor (focus, click or key press). The window uses it to know which pane Find should search.
     public var onFocus: (() -> Void)?
 
     public init() {}

@@ -45,7 +45,7 @@ struct DocumentWindow: View {
         .focusedSceneValue(\.reloadDocument, fileURL == nil ? nil : DocumentAction(run: reloadFromDisk))
         .onAppear {
             let pane = $activePane
-            editor.onFocus = { pane.wrappedValue = .editor }
+            editor.onFocus = { if pane.wrappedValue != .editor { pane.wrappedValue = .editor } }
         }
         .onChange(of: previewSearch.isPresented) { _, isPresented in if isPresented { activePane = .preview } }
         .onChange(of: layoutMode) { _, mode in if mode == .editor { previewSearch.close() } }

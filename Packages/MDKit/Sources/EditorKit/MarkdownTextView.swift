@@ -12,13 +12,25 @@ final class MarkdownTextView: NSTextView {
     /// math blocks and front matter. Set by the coordinator.
     var lineStateProvider: ((Int) -> LineState?)?
 
-    /// Called when the text view becomes the first responder (the user clicked or tabbed into the editor).
-    var onBecomeFirstResponder: (() -> Void)?
+    /// Called when the user starts working in the editor: it takes keyboard focus, is clicked, or gets a
+    /// key press. Clicking the preview does not move keyboard focus, so a click or key press back in the
+    /// editor is the only way the window learns the user is back.
+    var onActivity: (() -> Void)?
 
     override func becomeFirstResponder() -> Bool {
         let accepted = super.becomeFirstResponder()
-        if accepted { onBecomeFirstResponder?() }
+        if accepted { onActivity?() }
         return accepted
+    }
+
+    override func mouseDown(with event: NSEvent) {
+        onActivity?()
+        super.mouseDown(with: event)
+    }
+
+    override func keyDown(with event: NSEvent) {
+        onActivity?()
+        super.keyDown(with: event)
     }
 
     private var text: NSString { textStorage?.mutableString ?? "" }
