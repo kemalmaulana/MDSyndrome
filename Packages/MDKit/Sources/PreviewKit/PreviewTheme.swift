@@ -151,6 +151,8 @@ extension EnvironmentValues {
     /// since the Markdown can stay the same while a picture on disk changed.
     @Entry public var previewReloadToken: Int = 0
     @Entry var listDepth: Int = 0
+    /// Called with the source line of a task item whose checkbox was clicked; nil leaves checkboxes as pictures.
+    @Entry var toggleTask: ((Int) -> Void)? = nil
     /// Horizontal alignment of HTML-authored blocks (`<p align="center">`), read by image rows.
     @Entry var blockAlignment: BlockAlignment = .leading
 }

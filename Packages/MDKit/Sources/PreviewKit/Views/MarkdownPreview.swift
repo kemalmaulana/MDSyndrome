@@ -13,6 +13,7 @@ public struct MarkdownPreview: View {
     private let webRenderer: (any WebRendering)?
     private let scroller: PreviewScroller?
     private let linkHandler: ((LinkAction) -> Void)?
+    private let onToggleTask: ((Int) -> Void)?
     @State private var ownScroller = PreviewScroller()
 
     private var activeScroller: PreviewScroller { scroller ?? ownScroller }
@@ -25,8 +26,11 @@ public struct MarkdownPreview: View {
     ///     makes its own when there is none.
     ///   - linkHandler: gets the links that leave the preview (another document, a file, another scheme); web and mail
     ///     links open through the system and `#fragment` links scroll the preview themselves.
+    ///   - onToggleTask: gets the source line of a task item whose checkbox was clicked (PV-11); nil leaves the
+    ///     checkboxes as pictures.
     public init(rendered: RenderedDocument, baseURL: URL?, theme: PreviewTheme = .github, reloadToken: Int = 0, search: PreviewSearch? = nil,
-                webRenderer: (any WebRendering)? = nil, scroller: PreviewScroller? = nil, linkHandler: ((LinkAction) -> Void)? = nil) {
+                webRenderer: (any WebRendering)? = nil, scroller: PreviewScroller? = nil, linkHandler: ((LinkAction) -> Void)? = nil,
+                onToggleTask: ((Int) -> Void)? = nil) {
         self.rendered = rendered
         self.baseURL = baseURL
         self.theme = theme
@@ -35,6 +39,7 @@ public struct MarkdownPreview: View {
         self.webRenderer = webRenderer
         self.scroller = scroller
         self.linkHandler = linkHandler
+        self.onToggleTask = onToggleTask
     }
 
     public var body: some View {
@@ -71,6 +76,7 @@ public struct MarkdownPreview: View {
         .environment(\.previewReloadToken, reloadToken)
         .environment(\.previewSearch, search)
         .environment(\.webRenderer, webRenderer)
+        .environment(\.toggleTask, onToggleTask)
         .environment(\.openURL, OpenURLAction { url in
             switch LinkPolicy.action(for: url, baseURL: baseURL) {
             case .open:
