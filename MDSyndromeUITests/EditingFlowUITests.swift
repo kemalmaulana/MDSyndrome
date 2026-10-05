@@ -75,4 +75,60 @@ final class EditingFlowUITests: XCTestCase {
         app.typeKey("2", modifierFlags: [.command, .option])   // back to split
         XCTAssertEqual(editor.value as? String, "keep", "keystrokes in Preview mode must not reach the hidden editor")
     }
+
+    @MainActor
+    func testReturnContinuesAList() throws {
+        XCTAssertTrue(editor.waitForExistence(timeout: 10))
+        editor.click()
+        editor.typeText("- one\n")
+        XCTAssertEqual(editor.value as? String, "- one\n- ")
+    }
+
+    @MainActor
+    func testFormatShortcutWrapsTheSelection() throws {
+        XCTAssertTrue(editor.waitForExistence(timeout: 10))
+        editor.click()
+        editor.typeText("word")
+        app.typeKey("a", modifierFlags: .command)
+        app.typeKey("b", modifierFlags: .command)
+        XCTAssertEqual(editor.value as? String, "**word**")
+    }
+
+    @MainActor
+    func testTabIndentsAListItem() throws {
+        XCTAssertTrue(editor.waitForExistence(timeout: 10))
+        editor.click()
+        editor.typeText("- a")
+        app.typeKey(XCUIKeyboardKey.tab, modifierFlags: [])
+        XCTAssertEqual(editor.value as? String, "    - a")
+    }
+
+    @MainActor
+    func testBracketsPairUp() throws {
+        XCTAssertTrue(editor.waitForExistence(timeout: 10))
+        editor.click()
+        editor.typeText("(")
+        XCTAssertEqual(editor.value as? String, "()")
+    }
+
+    @MainActor
+    func testUndoUpdatesThePreview() throws {
+        XCTAssertTrue(editor.waitForExistence(timeout: 10))
+        editor.click()
+        editor.typeText("# Gone soon")
+        XCTAssertTrue(app.staticTexts["Gone soon"].waitForExistence(timeout: 5))
+        app.typeKey("z", modifierFlags: .command)
+        XCTAssertTrue(app.staticTexts["Gone soon"].waitForNonExistence(timeout: 5), "undo must reach the document, not only the text view")
+    }
+
+    @MainActor
+    func testFormatAndThemeMenusExist() throws {
+        XCTAssertTrue(editor.waitForExistence(timeout: 10))
+        app.menuBars.menuBarItems["Format"].click()
+        XCTAssertTrue(app.menuItems["Bold"].waitForExistence(timeout: 3))
+        app.typeKey(XCUIKeyboardKey.escape, modifierFlags: [])
+        app.menuBars.menuBarItems["View"].click()
+        XCTAssertTrue(app.menuItems["Editor Theme"].waitForExistence(timeout: 3))
+        app.typeKey(XCUIKeyboardKey.escape, modifierFlags: [])
+    }
 }

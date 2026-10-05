@@ -9,6 +9,7 @@ struct MDSyndromeApp: App {
         .commands {
             ViewCommands()
             FormatCommands()
+            FindCommands()
         }
     }
 }
