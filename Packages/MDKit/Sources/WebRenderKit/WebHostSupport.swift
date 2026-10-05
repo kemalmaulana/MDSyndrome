@@ -157,12 +157,19 @@ extension WKWebView {
     /// render leaves the process to finish on its own.
     @MainActor
     func killWebContentProcess() {
-        let identifier = NSSelectorFromString("_webProcessIdentifier")
-        if responds(to: identifier), let pid = (value(forKey: "_webProcessIdentifier") as? NSNumber)?.int32Value, pid > 1, pid != getpid() {
+        if let pid = webContentProcessIdentifier {
             kill(pid, SIGKILL)
             return
         }
         let polite = NSSelectorFromString("_killWebContentProcess")
         if responds(to: polite) { perform(polite) }
+    }
+
+    /// The pid of this web view's web content process, if WebKit says (private `_webProcessIdentifier`).
+    @MainActor
+    var webContentProcessIdentifier: pid_t? {
+        guard responds(to: NSSelectorFromString("_webProcessIdentifier")),
+              let pid = (value(forKey: "_webProcessIdentifier") as? NSNumber)?.int32Value, pid > 1, pid != getpid() else { return nil }
+        return pid
     }
 }

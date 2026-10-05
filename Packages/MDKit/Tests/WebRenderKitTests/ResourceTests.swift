@@ -34,19 +34,22 @@ import Testing
 
     @Test func aRunawayScriptIsKilledWithItsHost() async throws {
         _ = NSApplication.shared
-        let before = Set(await webContentProcesses().map(\.pid))
         let host = try await ScriptHost.start()
+        let pid = try #require(host.processIdentifier, "WebKit did not say which process runs the page")
         do {
             _ = try await withDeadline(.milliseconds(400)) { try await host.evaluate("while (true) {}") }
             Issue.record("an endless script cannot have returned")
         } catch RenderError.timeout {}
-        let spinning = await webContentProcesses().filter { !before.contains($0.pid) && $0.cpu > 30 }
+        #expect(kill(pid, 0) == 0, "control: the process is alive and stuck in its loop")
+        let spinning = await webContentProcesses().first { $0.pid == Int(pid) }
+        #expect((spinning?.cpu ?? 0) > 30, "control: the runaway script really is burning a core")
         host.invalidate()   // what WebRenderer does after a timeout
-        try await Task.sleep(for: .seconds(2))
-        let after = await webContentProcesses().filter { !before.contains($0.pid) }
-        #expect(!spinning.isEmpty, "control: the runaway script really was burning a core")
-        #expect(after.allSatisfy { $0.cpu < 30 }, "the runaway process is still running: \(after.map { "\($0.pid) \($0.cpu)%" })")
-        #expect(!after.contains { spinning.map(\.pid).contains($0.pid) }, "the process that spun is gone")
+        var gone = false
+        for _ in 0..<40 where !gone {
+            try await Task.sleep(for: .milliseconds(50))
+            gone = kill(pid, 0) == -1 && errno == ESRCH
+        }
+        #expect(gone, "the runaway process \(pid) is still running")
     }
 
     @Test func rendererRecoversAfterARunawayHost() async throws {

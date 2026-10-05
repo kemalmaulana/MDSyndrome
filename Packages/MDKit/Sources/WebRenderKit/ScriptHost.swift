@@ -57,6 +57,9 @@ final class ScriptHost: RenderHost {
         window.contentView = webView
     }
 
+    /// The web content process's pid, for tests that check it is really gone.
+    var processIdentifier: pid_t? { webView.webContentProcessIdentifier }
+
     /// Runs `body` in the page and returns its result. For tests, which probe the sandbox from inside.
     func evaluate(_ body: String, arguments: [String: Any] = [:]) async throws -> Any? {
         try await webView.callAsyncJavaScript(body, arguments: arguments, in: nil, contentWorld: .page)
