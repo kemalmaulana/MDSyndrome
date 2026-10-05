@@ -9,12 +9,14 @@ struct ImageBlockView: View {
     @Environment(\.documentBaseURL) private var baseURL
     @Environment(\.previewTheme) private var theme
     @Environment(\.previewReloadToken) private var reloadToken
+    @Environment(\.loadRemoteImages) private var loadRemoteImages
     @State private var phase: Phase = .loading
 
     /// What a load depends on: the file or URL, and a reload request.
     private struct LoadKey: Hashable {
         let source: ImageSource
         let reloadToken: Int
+        let allowRemote: Bool
     }
 
     enum Phase {
@@ -41,10 +43,10 @@ struct ImageBlockView: View {
                     .help(reason)
             }
         }
-        .task(id: LoadKey(source: resolved, reloadToken: reloadToken)) {
+        .task(id: LoadKey(source: resolved, reloadToken: reloadToken, allowRemote: loadRemoteImages)) {
             phase = .loading
             do {
-                let data = try await ImageLoader.data(for: resolved, reload: reloadToken > 0)
+                let data = try await ImageLoader.data(for: resolved, reload: reloadToken > 0, allowRemote: loadRemoteImages)
                 phase = NSImage(data: data).map(Phase.loaded) ?? .failed("Unsupported image format")
             } catch {
                 phase = .failed(error.localizedDescription)

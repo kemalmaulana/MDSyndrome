@@ -47,7 +47,7 @@ It runs natively on Apple Silicon, has no Electron, and renders its preview nati
 | "GitHub renders it differently" | Same engine as GitHub ([cmark-gfm](https://github.com/swiftlang/swift-cmark)): tables, task lists, ~~strikethrough~~, autolinks, footnotes | ✅ |
 | "Typing lags on my 1 MB changelog" | Parsing runs off the main thread with a 120 ms debounce; a 1 MB document renders in about 0.15 s | ✅ |
 | "Where did my badges go?" | Relative, absolute and remote images, SVG included | ✅ |
-| "Is this file going to do something weird?" | No script in a document ever runs. Links only open for `http(s)` and `mailto`. A file nested 5,000 levels deep won't crash it | ✅ |
+| "Is this file going to do something weird?" | No script in a document ever runs. Web and mail links open, a link to another Markdown file opens it here, and anything else asks first; a program is never run from a link. A file nested 5,000 levels deep won't crash it | ✅ |
 | "How long is this thing?" | Live words, characters, lines and reading time | ✅ |
 | "Where was that again?" | Find in the editor and in the preview, with highlighted matches, a match count and next/previous | ✅ v0.3 |
 | "Documents just work" | New, Open, Recent, autosave, Versions, tabs, undo that behaves. A file another program saved is picked up when you come back to the app, or on <kbd>⌘R</kbd> | ✅ |
@@ -57,9 +57,9 @@ It runs natively on Apple Silicon, has no Electron, and renders its preview nati
 | `==highlight==` | Marked text, MacDown-style | ✅ v0.2 |
 | ```` ```mermaid ```` · ```` ```dot ```` | Mermaid and Graphviz diagrams as sharp vector pictures that follow light and dark mode. A typo shows the library's message above the source | ✅ v0.4 |
 | "Where are my editor colours and shortcuts?" | Markdown syntax highlighting in six themes (Tomorrow+ by default), lists that continue, auto-pairing, a Format menu and toolbar: <kbd>⌘B</kbd> <kbd>⌘I</kbd> <kbd>⌘K</kbd> <kbd>⌘1</kbd>–<kbd>⌘6</kbd> | ✅ v0.3 |
-| "I lose my place" | Synced scrolling and an outline sidebar | 🧪 v0.5 |
-| "Make it pretty" | Preview and editor themes, a Settings window, your own themes as JSON | 🧪 v0.6 |
-| "Send it to my boss" | Export to HTML and PDF, and print | 🧪 v0.7 |
+| "I lose my place" | The editor and the preview scroll together, block by block, even in a 1 MB document. An outline (<kbd>⌃⌘S</kbd>) lists the headings and takes both panes there. `#anchor` links, links to other Markdown files and footnote links (with a way back) work. Click a task's checkbox in the preview to tick it in the source | ✅ v0.5 |
+| "Make it pretty" | A Settings window (<kbd>⌘,</kbd>) with General, Editor, Markdown and Preview tabs, applied live to every open document. Four preview themes (GitHub, Clearness, Solarized, System), six editor themes, preview zoom (<kbd>⌘+</kbd> <kbd>⌘−</kbd> <kbd>⌘0</kbd>), and your own themes as JSON files in `~/Library/Application Support/MDSyndrome/Themes` | ✅ v0.6 |
+| "Send it to my boss" | File ▸ Export as HTML… (one self-contained file, light and dark, no script in it) or PDF (paginated, text stays vector), Copy HTML (<kbd>⌥⌘C</kbd>), and Print (<kbd>⌘P</kbd>). Diagrams export as their source for now | ✅ v0.7 |
 
 ✅ ships today · 🧪 in clinical trials (see [the treatment plan](#-treatment-plan))
 
@@ -89,8 +89,8 @@ make run
 | Command | What it does |
 |---|---|
 | `make run` | Generate the Xcode project, build Debug, launch the app |
-| `make test` | Lint + package tests (`swift test`) + app unit tests: 464 tests |
-| `make test-ui` | 15 UI tests that drive the real app. ⚠️ They take over keyboard and mouse for about a minute |
+| `make test` | Lint + package tests (`swift test`) + app unit tests (the suite is brought up to date for v0.6–v0.7 in Plan 8) |
+| `make test-ui` | 18 UI tests that drive the real app. ⚠️ They take over keyboard and mouse for about a minute |
 | `make dist VERSION=1.2.3` | Universal Release build → `dist/` with `.zip`, `.dmg` and `SHA256SUMS.txt` |
 | `make gen` | Regenerate `MDSyndrome.xcodeproj` from `project.yml` (the project file is never committed) |
 | `make clean` | Remove build output and the generated project |
@@ -101,7 +101,7 @@ make run
 flowchart LR
     E["✍️ Editor<br/><sub>NSTextView</sub>"] -- "text" --> S["DocumentSession<br/><sub>120 ms debounce</sub>"]
     S -- "off the main actor" --> P["MarkdownCore<br/><sub>cmark-gfm → Swift AST</sub>"]
-    P --> R["RenderedDocument<br/><sub>blocks · outline · stats</sub>"]
+    P --> R["RenderedDocument<br/><sub>blocks · outline · anchors · source map · stats</sub>"]
     R --> V["👁 PreviewKit<br/><sub>native SwiftUI views</sub>"]
     R --> B["Status bar"]
 ```
@@ -110,12 +110,12 @@ flowchart LR
 
 | Module | Organ | Job |
 |---|---|---|
-| [`MarkdownCore`](Packages/MDKit/Sources/MarkdownCore) | 🧠 brain | Wraps cmark-gfm's C API into an immutable `Sendable` AST. Each block has a stable ID and the source lines it came from. Also protects math, builds heading slugs, the outline and stats |
-| [`PreviewKit`](Packages/MDKit/Sources/PreviewKit) | 👁 eyes | One SwiftUI view per block, the GitHub light/dark theme, image loading and link safety |
+| [`MarkdownCore`](Packages/MDKit/Sources/MarkdownCore) | 🧠 brain | Wraps cmark-gfm's C API into an immutable `Sendable` AST. Each block has a stable ID and the source lines it came from. Also protects math, builds heading slugs, the outline, the anchors and a source-line ↔ block map, and the stats |
+| [`PreviewKit`](Packages/MDKit/Sources/PreviewKit) | 👁 eyes | One SwiftUI view per block, four preview themes, image loading, link safety, and the HTML and PDF exporters |
 | [`EditorKit`](Packages/MDKit/Sources/EditorKit) | ✋ hands | An NSTextView on TextKit 2: live Markdown highlighting, themes, the pure edit transforms behind list continuation and the Format menu, and one-step undo that reaches the document |
 | [`WebRenderKit`](Packages/MDKit/Sources/WebRenderKit) | 🔭 lens | The only module that imports WebKit. Draws diagrams, KaTeX formulas and complex HTML in hidden, locked-down web views and returns vector pictures, with a cache, one request at a time, a timeout, and recovery if the web process dies |
 | [`SyntaxHighlighting`](Packages/MDKit/Sources/SyntaxHighlighting) | 🎨 colour | The table-driven code lexer the preview uses for fenced code blocks: linear time, no dependencies |
-| [`MDSyndrome`](MDSyndrome) | 🫀 heart | `DocumentGroup`, the debounced render session, the split layout and commands |
+| [`MDSyndrome`](MDSyndrome) | 🫀 heart | `DocumentGroup`, the debounced render session, the split layout, the Settings window, user themes, export and commands |
 
 ```text
 .
@@ -136,7 +136,7 @@ outputs images.
 
 | | Swift / native | JavaScript |
 |---|---|---|
-| Parsing, preview, scrolling, export | ✅ always | never |
+| Parsing, preview, scrolling, settings, export | ✅ always | never |
 | Code highlighting | ✅ built-in lexer | never |
 | LaTeX math | ✅ SwiftMath | KaTeX only for expressions SwiftMath can't handle |
 | Mermaid, Graphviz | — | ✅ no native implementation exists |
@@ -159,6 +159,10 @@ A document with no diagram, no unusual formula and no complex HTML never starts 
 | Keys | Action |
 |---|---|
 | <kbd>⌥⌘1</kbd> · <kbd>⌥⌘2</kbd> · <kbd>⌥⌘3</kbd> | Editor only · Editor & Preview · Preview only |
+| <kbd>⌘,</kbd> | Settings |
+| <kbd>⌘P</kbd> · <kbd>⌥⌘C</kbd> | Print · Copy HTML |
+| <kbd>⌘+</kbd> · <kbd>⌘−</kbd> · <kbd>⌘0</kbd> | Preview text bigger · smaller · actual size |
+| <kbd>⌃⌘S</kbd> | Show or hide the outline |
 | <kbd>⌘N</kbd> · <kbd>⌘O</kbd> · <kbd>⌘S</kbd> | New · Open · Save |
 | <kbd>⌘R</kbd> | Reload from Disk: read the file again, images included (asks first if you have unsaved edits) |
 | <kbd>⌘F</kbd> | Find in the pane you are working in: the editor's find bar (<kbd>⌥⌘F</kbd> adds Replace), or highlighted matches in the preview |
@@ -174,6 +178,8 @@ A document with no diagram, no unusual formula and no complex HTML never starts 
 
 The divider between the panes can be dragged, and every window remembers its layout.
 
+> **Known gaps in v0.7:** Mermaid, Graphviz and KaTeX-fallback figures export as their source rather than as pictures, and images that load asynchronously may be missing from the PDF.
+
 ## 🗺 Treatment plan
 
 | Phase | Milestone | Scope | |
@@ -182,10 +188,10 @@ The divider between the panes can be dragged, and every window remembers its lay
 | Plan 2 | M2 (native) | Native LaTeX, code highlighting, HTML subset, `<details>`, front matter, `==highlight==` | ✅ |
 | Plan 3 | M3 | Editor syntax highlighting, themes, list continuation, formatting shortcuts, toolbar; reload from disk, find in editor and preview | ✅ |
 | Plan 4 | M2 (web) | WebRenderKit: Mermaid, Graphviz, KaTeX fallback, raw-HTML snapshots | ✅ |
-| Plan 5 | M4 | Synced scrolling, outline sidebar, anchors, links between documents | |
-| Plan 6 | M5 | Themes and Settings | |
-| Plan 7 | M6 | Export to HTML and PDF, print | |
-| Plan 8 | M7 | Performance and accessibility pass, Quick Look extension, Homebrew cask | |
+| Plan 5 | M4 | Synced scrolling, outline, anchors, links between documents, ticking tasks in the preview | ✅ |
+| Plan 6 | M5 | Themes and Settings window, user theme folder | ✅ |
+| Plan 7 | M6 | Export to HTML and PDF, copy HTML, print | ✅ |
+| Plan 8 | M7 | All the tests for Plans 6–8 in one pass, performance and accessibility pass, release polish | |
 
 ## 🚀 Shipping a release (maintainers)
 
@@ -259,7 +265,7 @@ Releases are universal binaries, but the minimum is **macOS 26**. If your Intel 
 <details>
 <summary><b>Can I change the editor colours?</b></summary>
 
-Yes. **View → Editor Theme** switches between six built-in themes, with MacDown's Tomorrow+ as the default. The editor otherwise keeps MacDown's defaults (Menlo 14, same spacing and margins). A Settings window and your own JSON themes arrive in v0.6.
+Yes. **View → Editor Theme** (or **Settings → Editor**) switches between six built-in themes, with MacDown's Tomorrow+ as the default; the Settings window also sets the font, size, spacing and margins. Your own themes are JSON files in `~/Library/Application Support/MDSyndrome/Themes/Editor` and `…/Preview` (Settings → Editor → Reveal Themes Folder); a file that doesn't load is skipped and listed in Settings.
 </details>
 
 ## 📜 License & credits

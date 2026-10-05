@@ -98,6 +98,87 @@ public struct PreviewTheme: Codable, Hashable, Sendable {
     )
 }
 
+extension PreviewTheme {
+    /// The `UserDefaults` key under which the app remembers the chosen preview theme's name.
+    public static let storageKey = "previewTheme"
+
+    /// Smaller or larger text for ⌘+ / ⌘− (PV-9): sizes and spacing scale together, the content width does not.
+    public func scaled(by zoom: Double) -> PreviewTheme {
+        var theme = self
+        theme.bodyFontSize *= zoom
+        theme.lineSpacing *= zoom
+        theme.blockSpacing *= zoom
+        return theme
+    }
+
+    public func withMaxContentWidth(_ width: Double) -> PreviewTheme {
+        var theme = self
+        theme.maxContentWidth = width
+        return theme
+    }
+
+    /// Soft paper colours and a roomier layout, after MacDown's Clearness.
+    public static let clearness: PreviewTheme = {
+        var theme = PreviewTheme.github
+        theme.name = "Clearness"
+        theme.bodyFontSize = 15
+        theme.lineSpacing = 6
+        theme.blockSpacing = 18
+        theme.maxContentWidth = 760
+        theme.headingScales = [1.9, 1.5, 1.25, 1.1, 1, 0.9]
+        theme.background = ThemeColor(light: "#fdfdfc", dark: "#1c1c1e")
+        theme.text = ThemeColor(light: "#333333", dark: "#d8d8d8")
+        theme.secondaryText = ThemeColor(light: "#777777", dark: "#8e8e93")
+        theme.link = ThemeColor(light: "#4183c4", dark: "#6cb0f0")
+        theme.codeBackground = ThemeColor(light: "#f3f3f1", dark: "#2a2a2c")
+        theme.border = ThemeColor(light: "#dddddd", dark: "#3a3a3c")
+        theme.blockQuoteBar = ThemeColor(light: "#dddddd", dark: "#48484a")
+        theme.tableStripe = ThemeColor(light: "#f8f8f6", dark: "#232325")
+        return theme
+    }()
+
+    /// Solarized: cream paper by day, deep teal by night.
+    public static let solarized: PreviewTheme = {
+        var theme = PreviewTheme.github
+        theme.name = "Solarized"
+        theme.background = ThemeColor(light: "#fdf6e3", dark: "#002b36")
+        theme.text = ThemeColor(light: "#586e75", dark: "#93a1a1")
+        theme.secondaryText = ThemeColor(light: "#93a1a1", dark: "#657b83")
+        theme.link = ThemeColor(light: "#268bd2", dark: "#268bd2")
+        theme.codeBackground = ThemeColor(light: "#eee8d5", dark: "#073642")
+        theme.border = ThemeColor(light: "#eee8d5", dark: "#073642")
+        theme.blockQuoteBar = ThemeColor(light: "#93a1a1", dark: "#586e75")
+        theme.tableStripe = ThemeColor(light: "#f5eedb", dark: "#04323e")
+        theme.highlightBackground = ThemeColor(light: "#b5890059", dark: "#b5890040")
+        theme.error = ThemeColor(light: "#dc322f", dark: "#dc322f")
+        return theme
+    }()
+
+    /// Neutral macOS look: system-like greys, blue links.
+    public static let system: PreviewTheme = {
+        var theme = PreviewTheme.github
+        theme.name = "System"
+        theme.bodyFontSize = 14
+        theme.maxContentWidth = 820
+        theme.background = ThemeColor(light: "#ffffff", dark: "#1e1e1e")
+        theme.text = ThemeColor(light: "#1d1d1f", dark: "#f5f5f7")
+        theme.secondaryText = ThemeColor(light: "#6e6e73", dark: "#98989d")
+        theme.link = ThemeColor(light: "#0066cc", dark: "#2997ff")
+        theme.codeBackground = ThemeColor(light: "#f2f2f4", dark: "#2c2c2e")
+        theme.border = ThemeColor(light: "#d2d2d7", dark: "#424245")
+        theme.blockQuoteBar = ThemeColor(light: "#c7c7cc", dark: "#48484a")
+        theme.tableStripe = ThemeColor(light: "#f5f5f7", dark: "#252527")
+        return theme
+    }()
+
+    public static let builtIn: [PreviewTheme] = [.github, .clearness, .solarized, .system]
+
+    /// A built-in theme by name; an unknown name gives GitHub, the default.
+    public static func named(_ name: String) -> PreviewTheme {
+        builtIn.first { $0.name == name } ?? .github
+    }
+}
+
 /// Code-block colours per token kind (light + dark), GitHub Primer palette by default.
 public struct SyntaxPalette: Codable, Hashable, Sendable {
     public var keyword: ThemeColor
@@ -151,6 +232,20 @@ extension EnvironmentValues {
     /// since the Markdown can stay the same while a picture on disk changed.
     @Entry public var previewReloadToken: Int = 0
     @Entry var listDepth: Int = 0
+    /// False keeps remote images (`http`/`https`) from being fetched; they show as broken images.
+    @Entry public var loadRemoteImages: Bool = true
+    /// Handles a click on a task item's checkbox; nil leaves checkboxes as pictures.
+    @Entry var toggleTask: TaskToggleHandler? = nil
     /// Horizontal alignment of HTML-authored blocks (`<p align="center">`), read by image rows.
     @Entry var blockAlignment: BlockAlignment = .leading
+}
+
+/// The checkbox handler, wrapped so the environment can compare it. The closure is rebuilt on every update of the
+/// window but does the same thing each time, so two handlers count as equal and an update does not invalidate
+/// every list in the preview.
+struct TaskToggleHandler: Equatable {
+    /// Gets the source line of the item.
+    let run: (Int) -> Void
+
+    static func == (lhs: TaskToggleHandler, rhs: TaskToggleHandler) -> Bool { true }
 }

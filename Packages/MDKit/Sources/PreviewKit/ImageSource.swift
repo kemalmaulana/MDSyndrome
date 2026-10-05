@@ -27,11 +27,13 @@ public enum ImageSource: Hashable, Sendable {
 public enum ImageLoadError: LocalizedError, Equatable {
     case unresolved(String)
     case http(Int)
+    case remoteDisabled
 
     public var errorDescription: String? {
         switch self {
         case .unresolved(let reason): reason
         case .http(let status): "Server returned HTTP \(status)"
+        case .remoteDisabled: "Remote images are turned off in Settings"
         }
     }
 }
@@ -41,11 +43,13 @@ public enum ImageLoader {
     /// `URLSession.shared`, whose `URLCache` gives memory + disk caching.
     /// - Parameter reload: true after the user reloaded the document, so a remote image is fetched again
     ///   instead of coming from the cache.
-    public static func data(for source: ImageSource, reload: Bool = false) async throws -> Data {
+    /// - Parameter allowRemote: false refuses `http`/`https` sources (the "load remote images" setting).
+    public static func data(for source: ImageSource, reload: Bool = false, allowRemote: Bool = true) async throws -> Data {
         switch source {
         case .local(let url):
             return try await Task.detached(priority: .userInitiated) { try Data(contentsOf: url) }.value
         case .remote(let url):
+            guard allowRemote else { throw ImageLoadError.remoteDisabled }
             var request = URLRequest(url: url)
             if reload { request.cachePolicy = .reloadIgnoringLocalCacheData }
             let (data, response) = try await URLSession.shared.data(for: request)

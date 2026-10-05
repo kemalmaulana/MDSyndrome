@@ -1,15 +1,24 @@
 import EditorKit
 import SwiftUI
 
-/// The window toolbar: the layout picker on the leading side, format buttons on the trailing side.
+/// The window toolbar: the outline toggle and the layout picker on the leading side, format buttons on the trailing side.
 /// It is customizable (View → Customize Toolbar…): buttons can be reordered, removed and restored.
 /// Rarely used formats live in one "More" menu so the default set fits a narrow window.
 struct DocumentToolbar: CustomizableToolbarContent {
     @Binding var layoutMode: LayoutMode
+    @Binding var outlineVisible: Bool
     let editor: EditorController
     let editorIsVisible: Bool
+    let export: ExportActions
 
     var body: some CustomizableToolbarContent {
+        ToolbarItem(id: "outline", placement: .navigation) {
+            Button { outlineVisible.toggle() } label: {
+                Label("Outline", systemImage: "sidebar.leading")
+            }
+            .help(outlineVisible ? "Hide the outline (⌃⌘S)" : "Show the outline (⌃⌘S)")
+            .accessibilityIdentifier("outline-toggle")
+        }
         ToolbarItem(id: "layout", placement: .navigation) {
             Picker("Layout", selection: $layoutMode) {
                 ForEach(LayoutMode.allCases) { mode in
@@ -35,6 +44,18 @@ struct DocumentToolbar: CustomizableToolbarContent {
             }
             .disabled(!editorIsVisible)
             .help("Set the heading level")
+        }
+        ToolbarItem(id: "export", placement: .primaryAction) {
+            Menu {
+                Button("Export as HTML…") { export.exportHTML.run() }
+                Button("Export as PDF…") { export.exportPDF.run() }
+                Button("Copy HTML") { export.copyHTML.run() }
+                Divider()
+                Button("Print…") { export.printDocument.run() }
+            } label: {
+                Label("Export", systemImage: "square.and.arrow.up")
+            }
+            .help("Export, copy as HTML or print")
         }
         ToolbarItem(id: "format.more", placement: .primaryAction) {
             Menu {

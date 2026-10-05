@@ -10,6 +10,8 @@ public final class EditorCoordinator: NSObject, NSTextViewDelegate {
     public private(set) weak var textView: NSTextView?
     private weak var scrollView: NSScrollView?
     private var highlighter: EditorHighlighter?
+    private var scrollSupport: EditorScrollSupport?
+    nonisolated(unsafe) private var resizeObserver: NSObjectProtocol?
     private var isApplyingExternalText = false
     private var lastWrittenText: String?
     /// Counts character edits; the binding is written once per count, whichever callback sees it first.
@@ -40,11 +42,27 @@ public final class EditorCoordinator: NSObject, NSTextViewDelegate {
         textView.delegate = self
         self.textView = textView
         self.scrollView = scrollView
+        if let scrollView {
+            scrollView.postsFrameChangedNotifications = true
+            resizeObserver = NotificationCenter.default.addObserver(forName: NSView.frameDidChangeNotification, object: scrollView, queue: .main) { [weak self] _ in
+                MainActor.assumeIsolated { if let configuration = self?.appliedConfiguration { self?.updateInset(configuration) } }
+            }
+        }
         controller?.textView = textView
         textView.onActivity = { [weak controller] in controller?.onFocus?() }
 
         let highlighter = EditorHighlighter(theme: theme, configuration: configuration)
         self.highlighter = highlighter
+        if let scrollView {
+            let support = EditorScrollSupport(
+                textView: textView, scrollView: scrollView,
+                lineAt: { [weak highlighter] in highlighter?.line(at: $0) ?? 0 },
+                locationOfLine: { [weak highlighter] in highlighter?.location(ofLine: $0) ?? 0 },
+                rangeOfLine: { [weak highlighter] in highlighter?.contentRange(ofLine: $0) },
+                report: { [weak controller] line in controller?.onScroll?(line) })
+            controller?.scrolling = support
+            scrollSupport = support
+        }
         textView.lineStateProvider = { [weak highlighter] location in highlighter?.lineState(at: location) }
         // Undo and redo change the text without telling the text view's delegate, so the binding is
         // fed from the text storage, which sees every change.
@@ -57,8 +75,9 @@ public final class EditorCoordinator: NSObject, NSTextViewDelegate {
     func apply(theme: EditorTheme, configuration: EditorConfiguration, force: Bool = false) {
         guard let textView = textView as? MarkdownTextView, let highlighter else { return }
         textView.behavior = configuration
-        let inset = NSSize(width: configuration.horizontalInset, height: configuration.verticalInset)
-        if textView.textContainerInset != inset { textView.textContainerInset = inset }   // SwiftUI calls this on every keystroke
+        if textView.isContinuousSpellCheckingEnabled != configuration.spellCheck { textView.isContinuousSpellCheckingEnabled = configuration.spellCheck }
+        applyWrapping(configuration.softWrap, to: textView)
+        updateInset(configuration)
 
         let restyle = force || theme != appliedTheme || appliedConfiguration.map { Self.visuallyDiffers($0, configuration) } ?? true
         appliedConfiguration = configuration
@@ -84,6 +103,33 @@ public final class EditorCoordinator: NSObject, NSTextViewDelegate {
         textView.defaultParagraphStyle = configuration.paragraphStyle
         textView.typingAttributes = configuration.textAttributes(foreground: editorColor(theme.foreground) ?? .textColor)
         highlighter.restyleAll()
+    }
+
+    /// Soft wrap follows the view's width; without it the text container is as wide as the longest line and the
+    /// scroll view gets a horizontal scroller.
+    private func applyWrapping(_ wrap: Bool, to textView: NSTextView) {
+        guard let container = textView.textContainer, container.widthTracksTextView != wrap else { return }
+        container.widthTracksTextView = wrap
+        textView.isHorizontallyResizable = !wrap
+        scrollView?.hasHorizontalScroller = !wrap
+        if wrap {
+            textView.autoresizingMask = [.width]
+            container.containerSize = NSSize(width: textView.bounds.width, height: CGFloat.greatestFiniteMagnitude)
+        } else {
+            textView.autoresizingMask = []
+            container.containerSize = NSSize(width: 100_000, height: CGFloat.greatestFiniteMagnitude)
+        }
+    }
+
+    /// The side margin: the configured one, or wider so the text column is at most `maxTextWidth` and centred.
+    private func updateInset(_ configuration: EditorConfiguration) {
+        guard let textView else { return }
+        var horizontal = configuration.horizontalInset
+        if configuration.maxTextWidth > 0, configuration.softWrap, let width = scrollView?.contentSize.width {
+            horizontal = max(horizontal, (width - configuration.maxTextWidth) / 2)
+        }
+        let inset = NSSize(width: horizontal.rounded(), height: configuration.verticalInset)
+        if textView.textContainerInset != inset { textView.textContainerInset = inset }   // SwiftUI calls this on every keystroke
     }
 
     private static func visuallyDiffers(_ a: EditorConfiguration, _ b: EditorConfiguration) -> Bool {

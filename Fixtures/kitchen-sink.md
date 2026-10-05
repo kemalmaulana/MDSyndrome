@@ -170,4 +170,42 @@ $$
 this is not a diagram
 ```
 
+## Plan 5: navigation
+
+Open the outline with <kbd>⌃⌘S</kbd>, scroll either pane and watch the other follow, and click the links below.
+
+### Links
+
+- A heading in this document: [Inline](#inline), or the one above: [Plan 5: navigation](#plan-5-navigation).
+- Duplicate headings get numbers, as on GitHub: [first Details](#details), [second Details](#details-1).
+- Non-ASCII and percent-encoded: [café menu](#café-menu), [café, encoded](#caf%C3%A9-menu).
+- Another document, opened here: [the editing fixture](editing.md).
+- A file that is not there (beeps): [missing](nothing-here.md).
+- A file that is not Markdown (asks first): [the badge](images/badge.svg).
+- The web, in your browser: [example.com](https://example.com).
+- Something else (asks first): [call someone](tel:+1555010100).
+- A note with a way back[^nav].
+
+### Details
+
+The first of two headings with the same name.
+
+### Details
+
+The second one, whose anchor is `#details-1`.
+
+### Café menu
+
+A heading with an accent, to try `#café-menu` and `#caf%C3%A9-menu`.
+
+### Tasks
+
+Click a checkbox in the preview to tick it in the source; ⌘Z takes it back.
+
+- [ ] Click me
+- [x] Already done
+- [ ] A task with a nested one
+  - [ ] The nested task
+
 [^note]: The footnote text.
+[^nav]: The footnote's back-link, the arrow, takes you to the paragraph that cites it.

@@ -17,6 +17,12 @@ public final class EditorController {
     /// Called when the user works in the editor (focus, click or key press). The window uses it to know which pane Find should search.
     public var onFocus: (() -> Void)?
 
+    /// Called with the 1-based top line after the editor scrolled for any reason but `scroll(toLine:)` (wheel, scroller,
+    /// keys, the caret following typing), only when that line changed.
+    public var onScroll: ((Int) -> Void)?
+
+    var scrolling: EditorScrollSupport?
+
     public init() {}
 
     /// True while the keyboard is in the editor, including its find bar.
@@ -51,6 +57,24 @@ public final class EditorController {
     /// Scrolls the selection to the middle of the visible area (Edit → Find → Jump to Selection).
     public func jumpToSelection() {
         textView?.centerSelectionInVisibleArea(nil)
+    }
+
+    /// The 1-based line at the top of the visible area; nil while it cannot be told (hidden, or not laid out yet).
+    public var topLine: Int? { scrolling?.topLine }
+
+    /// Puts a 1-based line at the top of the visible area, exactly and at once. Does not call `onScroll`.
+    public func scroll(toLine line: Int) {
+        scrolling?.scroll(toLine: line)
+    }
+
+    /// Toggles the `[ ]` / `[x]` of the task item written on a 1-based line, as one undoable edit. False when the
+    /// line holds no task marker (the text moved on since the line number was taken).
+    @discardableResult
+    public func toggleTask(atLine line: Int) -> Bool {
+        guard let textView, let storage = textView.textStorage, let lineRange = scrolling?.contentRange(ofLine: line - 1),
+              let edit = EditTransforms.toggleTask(in: storage.mutableString, lineRange: lineRange, selection: textView.selectedRange()) else { return false }
+        textView.apply(edit, actionName: "Toggle Task")
+        return true
     }
 
     /// Moves keyboard focus into the editor.

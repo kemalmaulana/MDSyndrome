@@ -5,6 +5,35 @@ import Testing
 
 @MainActor
 @Suite struct DocumentSessionTests {
+    @Test func aFreshSessionHasNothingWaitingForARender() {
+        #expect(DocumentSession().isCurrent)
+    }
+
+    @Test func anEditMakesTheRenderStaleUntilItsOwnRenderArrives() async throws {
+        let session = DocumentSession(debounce: .milliseconds(30))
+        await session.renderNow("- [ ] a")
+        #expect(session.isCurrent)
+        session.textDidChange("new line\n- [ ] a")
+        #expect(!session.isCurrent, "the preview still shows the old text, whose line numbers are wrong now")
+        try await Task.sleep(for: .milliseconds(400))
+        #expect(session.isCurrent)
+        #expect(session.rendered.stats.lines == 2)
+    }
+
+    @Test func aSlowRenderOfOldTextDoesNotMakeANewerOneCurrent() async throws {
+        let session = DocumentSession(debounce: .milliseconds(10)) { text, options in
+            if text == "slow" { Thread.sleep(forTimeInterval: 0.3) }
+            return MarkdownPipeline.render(text, options: options)
+        }
+        session.textDidChange("slow")
+        try await Task.sleep(for: .milliseconds(60))
+        session.textDidChange("fast")
+        #expect(!session.isCurrent)
+        try await Task.sleep(for: .milliseconds(600))
+        #expect(session.isCurrent)
+        #expect(session.rendered.document.blocks.first?.kind == .paragraph([.text("fast")]))
+    }
+
     @Test func renderNowPublishesImmediately() async {
         let session = DocumentSession()
         await session.renderNow("# Title")

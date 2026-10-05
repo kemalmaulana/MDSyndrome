@@ -210,6 +210,12 @@ struct FootnoteView: View {
                 VStack(alignment: .leading, spacing: 8) {
                     ForEach(blocks) { BlockView(block: $0) }
                 }
+                if let back = URL(string: "#fnref-\(index)") {
+                    Link(destination: back) { Text("\u{21A9}\u{FE0E}") }
+                        .foregroundStyle(theme.link.color)
+                        .help("Back to the reference")
+                        .accessibilityLabel("Back to reference \(index)")
+                }
             }
             .font(.system(size: theme.bodyFontSize * 0.875))
         }

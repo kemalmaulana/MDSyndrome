@@ -5,6 +5,7 @@ struct ListBlockView: View {
     let list: ListBlock
     @Environment(\.previewTheme) private var theme
     @Environment(\.listDepth) private var depth
+    @Environment(\.toggleTask) private var toggleTask
 
     private var spacing: Double { list.tight ? 4 : theme.blockSpacing / 2 }
 
@@ -26,9 +27,18 @@ struct ListBlockView: View {
     @ViewBuilder
     private func marker(for item: ListItem, number: Int) -> some View {
         if let task = item.task {
-            Image(systemName: task == .checked ? "checkmark.square.fill" : "square")
+            let box = Image(systemName: task == .checked ? "checkmark.square.fill" : "square")
                 .foregroundStyle(task == .checked ? theme.link.color : theme.secondaryText.color)
-                .accessibilityLabel(task == .checked ? "Completed" : "Not completed")
+            if let toggleTask {
+                Button { toggleTask.run(item.lines.start) } label: { box }
+                    .buttonStyle(.plain)
+                    .pointerStyle(.link)
+                    .help(task == .checked ? "Mark as not completed" : "Mark as completed")
+                    .accessibilityLabel(task == .checked ? "Completed" : "Not completed")
+                    .accessibilityHint("Toggles the task in the document")
+            } else {
+                box.accessibilityLabel(task == .checked ? "Completed" : "Not completed")
+            }
         } else if list.ordered {
             Text("\(number).").monospacedDigit()
         } else {

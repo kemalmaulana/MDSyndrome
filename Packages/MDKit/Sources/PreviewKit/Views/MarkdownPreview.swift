@@ -11,37 +11,64 @@ public struct MarkdownPreview: View {
     private let reloadToken: Int
     private let search: PreviewSearch?
     private let webRenderer: (any WebRendering)?
+    private let scroller: PreviewScroller?
+    private let linkHandler: ((LinkAction) -> Void)?
+    private let onToggleTask: ((Int) -> Void)?
+    private let loadRemoteImages: Bool
+    @State private var ownScroller = PreviewScroller()
+
+    private var activeScroller: PreviewScroller { scroller ?? ownScroller }
 
     /// - Parameters:
     ///   - reloadToken: change it to make images load again (the document was reloaded from disk).
     ///   - search: the window's find-in-preview state; nil turns find off.
     ///   - webRenderer: draws diagrams, KaTeX fallback formulas and complex HTML; nil shows their source.
+    ///   - scroller: lets the window scroll the preview by block and ask which block is at the top; the preview
+    ///     makes its own when there is none.
+    ///   - linkHandler: gets the links that leave the preview (another document, a file, another scheme); web and mail
+    ///     links open through the system and `#fragment` links scroll the preview themselves.
+    ///   - loadRemoteImages: false keeps `http`/`https` images from being fetched (Settings ▸ General).
+    ///   - onToggleTask: gets the source line of a task item whose checkbox was clicked (PV-11); nil leaves the
+    ///     checkboxes as pictures.
     public init(rendered: RenderedDocument, baseURL: URL?, theme: PreviewTheme = .github, reloadToken: Int = 0, search: PreviewSearch? = nil,
-                webRenderer: (any WebRendering)? = nil) {
+                webRenderer: (any WebRendering)? = nil, scroller: PreviewScroller? = nil, linkHandler: ((LinkAction) -> Void)? = nil,
+                onToggleTask: ((Int) -> Void)? = nil, loadRemoteImages: Bool = true) {
         self.rendered = rendered
         self.baseURL = baseURL
         self.theme = theme
         self.reloadToken = reloadToken
         self.search = search
         self.webRenderer = webRenderer
+        self.scroller = scroller
+        self.linkHandler = linkHandler
+        self.onToggleTask = onToggleTask
+        self.loadRemoteImages = loadRemoteImages
     }
 
     public var body: some View {
         ScrollViewReader { proxy in
             ScrollView {
-                LazyVStack(alignment: .leading, spacing: theme.blockSpacing) {
-                    ForEach(rendered.document.blocks) { block in
-                        BlockView(block: block).id(block.id)
+                VStack(spacing: 0) {
+                    Color.clear.frame(height: 0).id(PreviewScroller.topMarker)   // a place to jump to that keeps the top margin
+                    LazyVStack(alignment: .leading, spacing: theme.blockSpacing) {
+                        ForEach(rendered.document.blocks) { block in
+                            BlockView(block: block).id(block.id)
+                        }
                     }
+                    .scrollTargetLayout()
+                    .frame(maxWidth: theme.maxContentWidth, alignment: .leading)
+                    .padding(.horizontal, 32)
+                    .padding(.vertical, 24)
+                    .frame(maxWidth: .infinity)
                 }
-                .frame(maxWidth: theme.maxContentWidth, alignment: .leading)
-                .padding(.horizontal, 32)
-                .padding(.vertical, 24)
-                .frame(maxWidth: .infinity)
             }
+            .onScrollTargetVisibilityChange(idType: BlockID.self, threshold: 0.01) { activeScroller.visibleBlocksChanged($0) }
+            .onScrollPhaseChange { _, phase in activeScroller.phaseChanged(phase) }
+            .onAppear { activeScroller.jump = { id, anchor in proxy.scrollTo(id, anchor: anchor) } }
             .onChange(of: search?.revealToken) { _, _ in
                 guard let target = search?.currentMatch?.topLevel else { return }
-                withAnimation(.easeInOut(duration: 0.15)) { proxy.scrollTo(target, anchor: .center) }
+                activeScroller.scroll(to: target, anchor: .center)
+                activeScroller.onNavigate?(target)
             }
         }
         .safeAreaInset(edge: .top, spacing: 0) {
@@ -53,12 +80,21 @@ public struct MarkdownPreview: View {
         .environment(\.previewTheme, theme)
         .environment(\.documentBaseURL, baseURL)
         .environment(\.previewReloadToken, reloadToken)
+        .environment(\.loadRemoteImages, loadRemoteImages)
         .environment(\.previewSearch, search)
         .environment(\.webRenderer, webRenderer)
+        .environment(\.toggleTask, onToggleTask.map(TaskToggleHandler.init))
         .environment(\.openURL, OpenURLAction { url in
-            LinkPolicy.decision(for: url) == .openExternally ? .systemAction : .discarded
+            switch PreviewLinkRouter(baseURL: baseURL, anchors: rendered.anchors, scroller: activeScroller, handler: linkHandler).route(url) {
+            case .system: .systemAction
+            case .handled: .handled
+            case .discarded: .discarded
+            }
         })
-        .onChange(of: rendered.document.blocks, initial: true) { _, blocks in search?.update(blocks: blocks) }
+        .onChange(of: rendered.document.blocks, initial: true) { _, blocks in
+            activeScroller.blocksChanged(blocks)
+            search?.update(blocks: blocks)
+        }
         .accessibilityIdentifier("markdown-preview")
     }
 }

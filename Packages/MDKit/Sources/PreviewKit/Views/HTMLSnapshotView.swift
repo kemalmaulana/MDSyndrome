@@ -10,6 +10,7 @@ struct HTMLSnapshotView: View {
     @Environment(\.colorScheme) private var scheme
     @Environment(\.documentBaseURL) private var baseURL
     @Environment(\.previewReloadToken) private var reloadToken
+    @Environment(\.loadRemoteImages) private var loadRemoteImages
     @State private var width: Double = 0
     @State private var prepared: String?
 
@@ -17,6 +18,7 @@ struct HTMLSnapshotView: View {
         let html: String
         let baseURL: URL?
         let reloadToken: Int
+        let allowRemote: Bool
     }
 
     var body: some View {
@@ -33,8 +35,8 @@ struct HTMLSnapshotView: View {
         .frame(maxWidth: .infinity, alignment: .leading)
         // Laid out at a multiple of 40 pt, so resizing the window does not draw a picture per pixel.
         .onGeometryChange(for: Double.self) { max(120, floor($0.size.width / 40) * 40) } action: { width = $0 }
-        .task(id: PrepareKey(html: html, baseURL: baseURL, reloadToken: reloadToken)) {
-            prepared = await HTMLImageInliner.inline(html, baseURL: baseURL, reload: reloadToken > 0)
+        .task(id: PrepareKey(html: html, baseURL: baseURL, reloadToken: reloadToken, allowRemote: loadRemoteImages)) {
+            prepared = await HTMLImageInliner.inline(html, baseURL: baseURL, reload: reloadToken > 0, allowRemote: loadRemoteImages)
         }
     }
 
