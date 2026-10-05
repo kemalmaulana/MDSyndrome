@@ -15,17 +15,11 @@ struct RenderedPicture<Failure: View>: View {
     @ViewBuilder let failure: (RenderError) -> Failure
 
     @Environment(\.webRenderer) private var renderer
-    @State private var phase: Phase = .loading
-
-    private enum Phase {
-        case loading
-        case loaded(NSImage)
-        case failed(RenderError)
-    }
+    @State private var loader = PictureLoader()
 
     var body: some View {
         Group {
-            switch phase {
+            switch loader.phase {
             case .loading:
                 ProgressView()
                     .controlSize(.small)
@@ -43,27 +37,6 @@ struct RenderedPicture<Failure: View>: View {
                 failure(error)
             }
         }
-        .task(id: request) { await load() }
-    }
-
-    private func load() async {
-        guard let renderer else { return phase = .failed(.unavailable("No renderer")) }
-        if debounce > .zero {
-            try? await Task.sleep(for: debounce)
-            if Task.isCancelled { return }
-        }
-        do {
-            let rendered = try await renderer.render(request)
-            if Task.isCancelled { return }
-            if let image = NSImage(data: rendered.pdf), image.size.width > 0 {
-                phase = .loaded(image)
-            } else {
-                phase = .failed(.unavailable("The picture could not be read"))
-            }
-        } catch let error as RenderError {
-            if !Task.isCancelled { phase = .failed(error) }
-        } catch {
-            // Cancelled with the view; nothing to show.
-        }
+        .task(id: request) { await loader.load(request, using: renderer, debounce: debounce) }
     }
 }

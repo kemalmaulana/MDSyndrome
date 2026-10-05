@@ -157,4 +157,14 @@ final class EditingFlowUITests: XCTestCase {
         app.typeKey(XCUIKeyboardKey.escape, modifierFlags: [])
         XCTAssertTrue(field.waitForNonExistence(timeout: 5), "Esc closes the find bar")
     }
+
+    @MainActor
+    func testMermaidFenceBecomesAPicture() throws {
+        XCTAssertTrue(editor.waitForExistence(timeout: 10))
+        editor.click()
+        editor.typeText("```mermaid\nflowchart LR\n  A --> B\n```")
+        // The first diagram starts the hidden web view, so give it time.
+        let picture = app.images.matching(NSPredicate(format: "label BEGINSWITH 'Diagram:'")).firstMatch
+        XCTAssertTrue(picture.waitForExistence(timeout: 30), "a mermaid fence is drawn as a picture in the preview")
+    }
 }

@@ -17,7 +17,7 @@ final class ScriptHost: RenderHost {
         set { lock.onTerminate = newValue }
     }
 
-    static var resourcesDirectory: URL? {
+    nonisolated static var resourcesDirectory: URL? {
         Bundle.module.resourceURL?.absoluteURL.appendingPathComponent("Resources", isDirectory: true)
     }
 

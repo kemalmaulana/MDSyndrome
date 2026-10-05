@@ -38,6 +38,11 @@ final class SnapshotHost: RenderHost {
         window.contentView = webView
     }
 
+    /// Runs a script from the app's side (page scripts are off). For tests, which probe what the page did.
+    func evaluate(_ script: String) async throws -> Any? {
+        try await webView.evaluateJavaScript(script)
+    }
+
     func invalidate() {
         guard !isInvalid else { return }
         isInvalid = true
