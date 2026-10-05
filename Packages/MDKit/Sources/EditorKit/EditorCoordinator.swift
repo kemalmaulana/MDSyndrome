@@ -68,6 +68,8 @@ public final class EditorCoordinator: NSObject, NSTextViewDelegate {
     func apply(theme: EditorTheme, configuration: EditorConfiguration, force: Bool = false) {
         guard let textView = textView as? MarkdownTextView, let highlighter else { return }
         textView.behavior = configuration
+        if textView.isContinuousSpellCheckingEnabled != configuration.spellCheck { textView.isContinuousSpellCheckingEnabled = configuration.spellCheck }
+        applyWrapping(configuration.softWrap, to: textView)
         let inset = NSSize(width: configuration.horizontalInset, height: configuration.verticalInset)
         if textView.textContainerInset != inset { textView.textContainerInset = inset }   // SwiftUI calls this on every keystroke
 
@@ -95,6 +97,22 @@ public final class EditorCoordinator: NSObject, NSTextViewDelegate {
         textView.defaultParagraphStyle = configuration.paragraphStyle
         textView.typingAttributes = configuration.textAttributes(foreground: editorColor(theme.foreground) ?? .textColor)
         highlighter.restyleAll()
+    }
+
+    /// Soft wrap follows the view's width; without it the text container is as wide as the longest line and the
+    /// scroll view gets a horizontal scroller.
+    private func applyWrapping(_ wrap: Bool, to textView: NSTextView) {
+        guard let container = textView.textContainer, container.widthTracksTextView != wrap else { return }
+        container.widthTracksTextView = wrap
+        textView.isHorizontallyResizable = !wrap
+        scrollView?.hasHorizontalScroller = !wrap
+        if wrap {
+            textView.autoresizingMask = [.width]
+            container.containerSize = NSSize(width: textView.bounds.width, height: CGFloat.greatestFiniteMagnitude)
+        } else {
+            textView.autoresizingMask = []
+            container.containerSize = NSSize(width: 100_000, height: CGFloat.greatestFiniteMagnitude)
+        }
     }
 
     private static func visuallyDiffers(_ a: EditorConfiguration, _ b: EditorConfiguration) -> Bool {

@@ -14,6 +14,10 @@ public struct EditorConfiguration: Hashable, Sendable {
     public var continueLists = true
     /// Return in the middle of an ordered list renumbers the items after it (ED-5).
     public var renumberLists = true
+    /// Long lines wrap at the window edge; off, the editor scrolls sideways (ED-4).
+    public var softWrap = true
+    /// Underline misspelled words while typing (ED-4). Off by default: Markdown is full of symbols.
+    public var spellCheck = false
     /// What Tab inserts and ⇧Tab removes (ED-6).
     public var indentUnit = "    "
 
