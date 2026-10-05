@@ -5,11 +5,12 @@ import Testing
 @Suite struct LinkPolicyTests {
     @Test(arguments: ["https://example.com", "http://example.com/a?b=1", "mailto:me@example.com", "HTTPS://EXAMPLE.COM"])
     func webAndMailOpen(_ link: String) throws {
-        #expect(LinkPolicy.decision(for: try #require(URL(string: link))) == .openExternally)
+        let url = try #require(URL(string: link))
+        #expect(LinkPolicy.action(for: url, baseURL: nil) == .open(url))
     }
 
-    @Test(arguments: ["file:///Applications/Calculator.app", "javascript:alert(1)", "x-apple-systempreferences:", "#fn-1", "other.md", "ssh://host"])
-    func everythingElseIsIgnored(_ link: String) throws {
-        #expect(LinkPolicy.decision(for: try #require(URL(string: link))) == .ignore)
+    @Test(arguments: ["javascript:alert(1)", "data:text/html,hi"])
+    func scriptsAreIgnored(_ link: String) throws {
+        #expect(LinkPolicy.action(for: try #require(URL(string: link)), baseURL: nil) == .ignore)
     }
 }

@@ -30,7 +30,8 @@ struct DocumentWindow: View {
                                    isHidden: !editorIsVisible, controller: editor)
             } preview: {
                 MarkdownPreview(rendered: session.rendered, baseURL: fileURL?.deletingLastPathComponent(), reloadToken: previewReloadToken,
-                                search: layoutMode == .editor ? nil : previewSearch, webRenderer: webRenderer)
+                                search: layoutMode == .editor ? nil : previewSearch, webRenderer: webRenderer,
+                                linkHandler: { LinkOpener.handle($0, window: NSApp.keyWindow) })
                     .simultaneousGesture(TapGesture().onEnded { activePane = .preview })
             }
             Divider()

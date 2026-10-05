@@ -12,6 +12,7 @@ public struct MarkdownPreview: View {
     private let search: PreviewSearch?
     private let webRenderer: (any WebRendering)?
     private let scroller: PreviewScroller?
+    private let linkHandler: ((LinkAction) -> Void)?
     @State private var ownScroller = PreviewScroller()
 
     private var activeScroller: PreviewScroller { scroller ?? ownScroller }
@@ -22,8 +23,10 @@ public struct MarkdownPreview: View {
     ///   - webRenderer: draws diagrams, KaTeX fallback formulas and complex HTML; nil shows their source.
     ///   - scroller: lets the window scroll the preview by block and ask which block is at the top; the preview
     ///     makes its own when there is none.
+    ///   - linkHandler: gets the links that leave the preview (another document, a file, another scheme); web and mail
+    ///     links open through the system and `#fragment` links scroll the preview themselves.
     public init(rendered: RenderedDocument, baseURL: URL?, theme: PreviewTheme = .github, reloadToken: Int = 0, search: PreviewSearch? = nil,
-                webRenderer: (any WebRendering)? = nil, scroller: PreviewScroller? = nil) {
+                webRenderer: (any WebRendering)? = nil, scroller: PreviewScroller? = nil, linkHandler: ((LinkAction) -> Void)? = nil) {
         self.rendered = rendered
         self.baseURL = baseURL
         self.theme = theme
@@ -31,6 +34,7 @@ public struct MarkdownPreview: View {
         self.search = search
         self.webRenderer = webRenderer
         self.scroller = scroller
+        self.linkHandler = linkHandler
     }
 
     public var body: some View {
@@ -68,12 +72,30 @@ public struct MarkdownPreview: View {
         .environment(\.previewSearch, search)
         .environment(\.webRenderer, webRenderer)
         .environment(\.openURL, OpenURLAction { url in
-            LinkPolicy.decision(for: url) == .openExternally ? .systemAction : .discarded
+            switch LinkPolicy.action(for: url, baseURL: baseURL) {
+            case .open:
+                return .systemAction
+            case .scroll(let fragment):
+                scrollToAnchor(fragment)
+                return .handled
+            case .ignore:
+                return .discarded
+            case let action:
+                linkHandler?(action)
+                return .handled
+            }
         })
         .onChange(of: rendered.document.blocks, initial: true) { _, blocks in
             activeScroller.blocksChanged(blocks)
             search?.update(blocks: blocks)
         }
         .accessibilityIdentifier("markdown-preview")
+    }
+
+    /// A `#fragment` link: scrolls to the heading or footnote it names; a name that matches nothing does nothing.
+    private func scrollToAnchor(_ fragment: String) {
+        guard let target = rendered.anchors.target(for: fragment) else { return }
+        activeScroller.scroll(to: target)
+        activeScroller.onNavigate?(target)
     }
 }
