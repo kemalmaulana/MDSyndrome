@@ -12,6 +12,9 @@ struct DocumentWindow: View {
     @State private var editor = EditorController()
     /// Bumped by ⌘R so the preview reads its images from disk again.
     @State private var previewReloadToken = 0
+    @State private var previewSearch = PreviewSearch()
+    /// Where Find goes in the split layout: the pane the user clicked or typed in last.
+    @State private var activePane: Pane = .editor
     @SceneStorage("layoutMode") private var layoutMode: LayoutMode = .split
     @SceneStorage("splitRatio") private var splitRatio: Double = 0.5
     @AppStorage(EditorTheme.storageKey) private var editorThemeName = EditorTheme.tomorrowPlus.name
@@ -24,7 +27,9 @@ struct DocumentWindow: View {
                 MarkdownEditorView(text: $document.text, theme: EditorTheme.named(editorThemeName),
                                    isHidden: !editorIsVisible, controller: editor)
             } preview: {
-                MarkdownPreview(rendered: session.rendered, baseURL: fileURL?.deletingLastPathComponent(), reloadToken: previewReloadToken)
+                MarkdownPreview(rendered: session.rendered, baseURL: fileURL?.deletingLastPathComponent(), reloadToken: previewReloadToken,
+                                search: layoutMode == .editor ? nil : previewSearch)
+                    .simultaneousGesture(TapGesture().onEnded { activePane = .preview })
             }
             Divider()
             StatusBar(stats: session.rendered.stats)
@@ -35,7 +40,15 @@ struct DocumentWindow: View {
         }
         .focusedSceneValue(\.layoutMode, $layoutMode)
         .focusedSceneValue(\.editorController, editorIsVisible ? editor : nil)
+        .focusedSceneValue(\.findRouter, FindRouter(editor: editorIsVisible ? editor : nil, preview: layoutMode == .editor ? nil : previewSearch,
+                                                   layout: layoutMode, pane: activePane))
         .focusedSceneValue(\.reloadDocument, fileURL == nil ? nil : DocumentAction(run: reloadFromDisk))
+        .onAppear {
+            let pane = $activePane
+            editor.onFocus = { pane.wrappedValue = .editor }
+        }
+        .onChange(of: previewSearch.isPresented) { _, isPresented in if isPresented { activePane = .preview } }
+        .onChange(of: layoutMode) { _, mode in if mode == .editor { previewSearch.close() } }
         .task { await session.renderNow(document.text) }
         .onChange(of: document.text) { _, newText in session.textDidChange(newText) }
         .onReceive(NotificationCenter.default.publisher(for: NSApplication.didBecomeActiveNotification)) { _ in pullChangesFromDisk() }

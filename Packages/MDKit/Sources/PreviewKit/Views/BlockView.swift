@@ -6,6 +6,11 @@ struct BlockView: View {
     @Environment(\.previewTheme) private var theme
 
     var body: some View {
+        content.environment(\.searchLine, block.lines.start)
+    }
+
+    @ViewBuilder
+    private var content: some View {
         switch block.kind {
         case .heading(let level, let content):
             HeadingView(level: level, content: content)
@@ -45,10 +50,13 @@ struct HeadingView: View {
     let content: [Inline]
     var alignment: BlockAlignment = .leading
     @Environment(\.previewTheme) private var theme
+    @Environment(\.previewSearch) private var search
+    @Environment(\.searchLine) private var searchLine
 
     var body: some View {
         VStack(alignment: alignment.horizontal, spacing: 6) {
-            InlineRenderer.text(content, theme: theme, fontSize: theme.headingSize(level: level))
+            InlineRenderer.text(content, theme: theme, fontSize: theme.headingSize(level: level),
+                                highlights: search?.highlights(for: SearchRunKey(line: searchLine, slot: 0)) ?? [])
                 .font(.system(size: theme.headingSize(level: level), weight: .semibold))
                 .multilineTextAlignment(alignment.text)
                 .textSelection(.enabled)
@@ -68,6 +76,8 @@ struct InlineFlowView: View {
     let content: [Inline]
     var alignment: BlockAlignment = .leading
     @Environment(\.previewTheme) private var theme
+    @Environment(\.previewSearch) private var search
+    @Environment(\.searchLine) private var searchLine
 
     var body: some View {
         if case .image(let source, _, let alt, let width)? = content.onlyNonWhitespace {
@@ -90,7 +100,8 @@ struct InlineFlowView: View {
             MixedInlineFlow(content: content)
                 .environment(\.blockAlignment, alignment)
         } else {
-            InlineRenderer.text(content, theme: theme)
+            InlineRenderer.text(content, theme: theme, fontSize: nil,
+                                highlights: search?.highlights(for: SearchRunKey(line: searchLine, slot: 0)) ?? [])
                 .lineSpacing(theme.lineSpacing)
                 .multilineTextAlignment(alignment.text)
                 .textSelection(.enabled)
@@ -273,6 +284,8 @@ struct DetailsView: View {
     let summary: [Inline]
     let blocks: [Block]
     @Environment(\.previewTheme) private var theme
+    @Environment(\.previewSearch) private var search
+    @Environment(\.searchLine) private var searchLine
     @State private var isExpanded: Bool
 
     init(summary: [Inline], initiallyOpen: Bool, blocks: [Block]) {
@@ -289,7 +302,8 @@ struct DetailsView: View {
             .padding(.top, 8)
             .padding(.leading, 4)
         } label: {
-            InlineRenderer.text(summary, theme: theme)
+            InlineRenderer.text(summary, theme: theme, fontSize: nil,
+                                highlights: search?.highlights(for: SearchRunKey(line: searchLine, slot: SearchRunKey.summarySlot)) ?? [])
         }
     }
 }

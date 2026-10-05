@@ -14,7 +14,18 @@ public enum FindAction: Int, Sendable {
 public final class EditorController {
     weak var textView: MarkdownTextView?
 
+    /// Called when the editor takes keyboard focus. The window uses it to know which pane Find should search.
+    public var onFocus: (() -> Void)?
+
     public init() {}
+
+    /// True while the keyboard is in the editor, including its find bar.
+    public var hasFocus: Bool {
+        guard let textView, let responder = textView.window?.firstResponder else { return false }
+        if responder === textView { return true }
+        guard let view = responder as? NSView else { return false }
+        return view.isDescendant(of: textView.enclosingScrollView ?? textView)
+    }
 
     /// True once an editor is attached to this controller.
     public var isAttached: Bool { textView != nil }

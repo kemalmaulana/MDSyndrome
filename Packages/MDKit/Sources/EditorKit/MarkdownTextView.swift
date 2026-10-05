@@ -12,6 +12,15 @@ final class MarkdownTextView: NSTextView {
     /// math blocks and front matter. Set by the coordinator.
     var lineStateProvider: ((Int) -> LineState?)?
 
+    /// Called when the text view becomes the first responder (the user clicked or tabbed into the editor).
+    var onBecomeFirstResponder: (() -> Void)?
+
+    override func becomeFirstResponder() -> Bool {
+        let accepted = super.becomeFirstResponder()
+        if accepted { onBecomeFirstResponder?() }
+        return accepted
+    }
+
     private var text: NSString { textStorage?.mutableString ?? "" }
     private var hasSingleSelection: Bool { selectedRanges.count == 1 }
 

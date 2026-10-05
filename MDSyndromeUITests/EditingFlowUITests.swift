@@ -131,4 +131,30 @@ final class EditingFlowUITests: XCTestCase {
         XCTAssertTrue(app.menuItems["Editor Theme"].waitForExistence(timeout: 3))
         app.typeKey(XCUIKeyboardKey.escape, modifierFlags: [])
     }
+
+    @MainActor
+    func testFindShortcutOpensTheEditorFindBar() throws {
+        XCTAssertTrue(editor.waitForExistence(timeout: 10))
+        editor.click()
+        editor.typeText("find me")
+        app.typeKey("f", modifierFlags: .command)
+        XCTAssertTrue(app.searchFields.firstMatch.waitForExistence(timeout: 5), "⌘F in the editor opens its find bar")
+    }
+
+    @MainActor
+    func testFindInThePreviewCountsAndStepsThroughMatches() throws {
+        XCTAssertTrue(editor.waitForExistence(timeout: 10))
+        editor.click()
+        editor.typeText("# Needle\n\nA needle in a haystack with another needle.")
+        app.typeKey("3", modifierFlags: [.command, .option])   // preview only: Find goes to the preview
+        app.typeKey("f", modifierFlags: .command)
+        let field = app.textFields["preview-search-field"]
+        XCTAssertTrue(field.waitForExistence(timeout: 5))
+        field.typeText("needle")
+        XCTAssertTrue(app.staticTexts["1 of 3"].waitForExistence(timeout: 5))
+        app.typeKey("g", modifierFlags: .command)
+        XCTAssertTrue(app.staticTexts["2 of 3"].waitForExistence(timeout: 5))
+        app.typeKey(XCUIKeyboardKey.escape, modifierFlags: [])
+        XCTAssertTrue(field.waitForNonExistence(timeout: 5), "Esc closes the find bar")
+    }
 }

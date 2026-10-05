@@ -6,32 +6,74 @@ import SwiftUI
 /// Emphasis/strong/code/strikethrough use `inlinePresentationIntent`, which
 /// SwiftUI combines correctly (e.g. bold + italic) with the surrounding font.
 public enum InlineRenderer {
-    /// Text with native math: top-level `.math` inlines become typeset images sitting on the baseline.
-    /// Math nested inside emphasis or links falls back to monospaced source.
-    @MainActor
-    public static func text(_ inlines: [Inline], theme: PreviewTheme, fontSize: Double? = nil) -> Text {
+    /// What a run of inlines is drawn as: text, or a formula typeset as an image.
+    enum Piece {
+        case text(AttributedString)
+        case math(latex: String, display: Bool)
+    }
+
+    /// Splits `inlines` into text and top-level formulas. Math nested inside emphasis or links stays
+    /// monospaced source inside the text.
+    static func pieces(_ inlines: [Inline], theme: PreviewTheme) -> [Piece] {
         let mathCount = inlines.reduce(0) { if case .math = $1 { $0 + 1 } else { $0 } }
         // Hundreds of formulas in one paragraph: typesetting each and composing the Text costs more than
         // it gives, so show them as source (still readable, never a crash).
         guard mathCount > 0, mathCount <= maxTypesetFormulas else {
-            return Text(attributedString(inlines, theme: theme))
+            return [.text(attributedString(inlines, theme: theme))]
         }
-        var parts: [Text] = []
+        var pieces: [Piece] = []
         var buffer: [Inline] = []
         func flush() {
-            if !buffer.isEmpty { parts.append(Text(attributedString(buffer, theme: theme))) }
+            if !buffer.isEmpty { pieces.append(.text(attributedString(buffer, theme: theme))) }
             buffer = []
         }
         for inline in inlines {
             if case .math(let latex, let display) = inline {
                 flush()
-                parts.append(mathText(latex, display: display, fontSize: fontSize ?? theme.bodyFontSize, theme: theme))
+                pieces.append(.math(latex: latex, display: display))
             } else {
                 buffer.append(inline)
             }
         }
         flush()
+        return pieces
+    }
+
+    /// The characters of `inlines` that the preview draws as text, which is what find searches.
+    static func searchText(_ inlines: [Inline]) -> String {
+        pieces(inlines, theme: .github).reduce(into: "") { result, piece in
+            if case .text(let text) = piece { result += String(text.characters) }
+        }
+    }
+
+    /// `pieces` with find matches coloured. Offsets count the text characters of the whole run, so a
+    /// formula (which has none) sits between two text pieces without shifting the second one.
+    static func highlightedPieces(_ inlines: [Inline], theme: PreviewTheme, highlights: [SearchHighlight]) -> [Piece] {
+        var offset = 0
+        return pieces(inlines, theme: theme).map { piece in
+            guard case .text(var attributed) = piece, !highlights.isEmpty else { return piece }
+            attributed.applySearchHighlights(highlights, offset: offset, theme: theme)
+            offset += attributed.characters.count
+            return .text(attributed)
+        }
+    }
+
+    /// Text with native math: top-level `.math` inlines become typeset images sitting on the baseline.
+    /// `highlights` colour find matches; their offsets count the text characters only (formulas have none).
+    @MainActor
+    static func text(_ inlines: [Inline], theme: PreviewTheme, fontSize: Double? = nil, highlights: [SearchHighlight]) -> Text {
+        let parts: [Text] = highlightedPieces(inlines, theme: theme, highlights: highlights).map { piece in
+            switch piece {
+            case .text(let attributed): Text(attributed)
+            case .math(let latex, let display): mathText(latex, display: display, fontSize: fontSize ?? theme.bodyFontSize, theme: theme)
+            }
+        }
         return concatenate(parts[...])
+    }
+
+    @MainActor
+    public static func text(_ inlines: [Inline], theme: PreviewTheme, fontSize: Double? = nil) -> Text {
+        text(inlines, theme: theme, fontSize: fontSize, highlights: [])
     }
 
     /// Formulas per paragraph above which inline math is shown as source instead of typeset.
@@ -141,5 +183,24 @@ public enum InlineRenderer {
         var run = AttributedString(string)
         if !intent.isEmpty { run.inlinePresentationIntent = intent }
         return run
+    }
+}
+
+extension AttributedString {
+    /// Gives find matches a background. `offset` is where this text starts within the run it belongs to.
+    mutating func applySearchHighlights(_ highlights: [SearchHighlight], offset: Int, theme: PreviewTheme) {
+        let length = characters.count
+        var index = characters.startIndex
+        var position = 0
+        for highlight in highlights.sorted(by: { $0.range.lowerBound < $1.range.lowerBound }) {
+            let start = Swift.max(0, highlight.range.lowerBound - offset)
+            let end = Swift.min(length, highlight.range.upperBound - offset)
+            guard start < end, start >= position else { continue }
+            index = characters.index(index, offsetBy: start - position)
+            let stop = characters.index(index, offsetBy: end - start)
+            self[index..<stop].backgroundColor = (highlight.isCurrent ? theme.searchCurrentBackground : theme.searchMatchBackground).color
+            index = stop
+            position = end
+        }
     }
 }

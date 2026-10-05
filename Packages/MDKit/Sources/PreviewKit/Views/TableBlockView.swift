@@ -4,6 +4,8 @@ import SwiftUI
 struct TableBlockView: View {
     let table: TableBlock
     @Environment(\.previewTheme) private var theme
+    @Environment(\.previewSearch) private var search
+    @Environment(\.searchLine) private var searchLine
 
     var body: some View {
         ScrollView(.horizontal) {
@@ -27,7 +29,8 @@ struct TableBlockView: View {
 
     /// `row == nil` is the header row.
     private func cell(_ content: [Inline], column: Int, row: Int?) -> some View {
-        InlineRenderer.text(content, theme: theme)
+        let key = SearchRunKey.cell(line: searchLine, row: (row ?? -1) + 1, column: column)
+        return InlineRenderer.text(content, theme: theme, fontSize: nil, highlights: search?.highlights(for: key) ?? [])
             .fontWeight(row == nil ? .semibold : .regular)
             .multilineTextAlignment(textAlignment(column))
             .frame(maxWidth: .infinity, alignment: frameAlignment(column))

@@ -148,6 +148,29 @@ private final class EditorHarness {
         #expect(editor.scrollView.isFindBarVisible)
     }
 
+    @Test func theControllerKnowsWhenTheEditorHasTheKeyboard() {
+        let editor = EditorHarness("text")
+        var focusEvents = 0
+        editor.controller.onFocus = { focusEvents += 1 }
+        #expect(editor.controller.hasFocus)
+        editor.window.makeFirstResponder(nil)
+        #expect(!editor.controller.hasFocus)
+        #expect(editor.window.makeFirstResponder(editor.textView))
+        #expect(editor.controller.hasFocus)
+        #expect(focusEvents == 1, "taking focus is reported once, so the window can follow the user between panes")
+    }
+
+    @Test func theFindBarCountsAsTheEditorHavingFocus() {
+        let editor = EditorHarness("find me")
+        editor.controller.find(.show)
+        #expect(editor.scrollView.isFindBarVisible)
+        editor.window.makeFirstResponder(editor.scrollView.findBarView?.subviews.first)
+        // Wherever the first responder is inside the editor's scroll view, Find stays with the editor.
+        if let responder = editor.window.firstResponder as? NSView, responder !== editor.textView {
+            #expect(editor.controller.hasFocus)
+        }
+    }
+
     @Test func jumpToSelectionDoesNotMoveTheSelection() {
         let editor = EditorHarness("a\nb\nc")
         editor.textView.setSelectedRange(NSRange(location: 2, length: 1))

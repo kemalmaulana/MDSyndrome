@@ -49,6 +49,7 @@ It runs natively on Apple Silicon, has no Electron, and renders its preview nati
 | "Where did my badges go?" | Relative, absolute and remote images, SVG included | ✅ |
 | "Is this file going to do something weird?" | No script in a document ever runs. Links only open for `http(s)` and `mailto`. A file nested 5,000 levels deep won't crash it | ✅ |
 | "How long is this thing?" | Live words, characters, lines and reading time | ✅ |
+| "Where was that again?" | Find in the editor and in the preview, with highlighted matches, a match count and next/previous | ✅ v0.3 |
 | "Documents just work" | New, Open, Recent, autosave, Versions, tabs, undo that behaves. A file another program saved is picked up when you come back to the app, or on <kbd>⌘R</kbd> | ✅ |
 | `$E = mc^2$` | Native LaTeX math, inline and display (SwiftMath). A formula it can't typeset shows its source in red | ✅ v0.2 |
 | ```` ```swift ```` | Syntax-highlighted code blocks in 20+ languages, GitHub colours in light and dark | ✅ v0.2 |
@@ -88,8 +89,8 @@ make run
 | Command | What it does |
 |---|---|
 | `make run` | Generate the Xcode project, build Debug, launch the app |
-| `make test` | Lint + package tests (`swift test`) + app unit tests: 307 tests |
-| `make test-ui` | 12 UI tests that drive the real app. ⚠️ They take over keyboard and mouse for about a minute |
+| `make test` | Lint + package tests (`swift test`) + app unit tests: 351 tests |
+| `make test-ui` | 14 UI tests that drive the real app. ⚠️ They take over keyboard and mouse for about a minute |
 | `make dist VERSION=1.2.3` | Universal Release build → `dist/` with `.zip`, `.dmg` and `SHA256SUMS.txt` |
 | `make gen` | Regenerate `MDSyndrome.xcodeproj` from `project.yml` (the project file is never committed) |
 | `make clean` | Remove build output and the generated project |
@@ -148,7 +149,8 @@ outputs images.
 | <kbd>⌥⌘1</kbd> · <kbd>⌥⌘2</kbd> · <kbd>⌥⌘3</kbd> | Editor only · Editor & Preview · Preview only |
 | <kbd>⌘N</kbd> · <kbd>⌘O</kbd> · <kbd>⌘S</kbd> | New · Open · Save |
 | <kbd>⌘R</kbd> | Reload from Disk: read the file again, images included (asks first if you have unsaved edits) |
-| <kbd>⌘F</kbd> | Find & replace in the editor |
+| <kbd>⌘F</kbd> | Find in the pane you are working in: the editor's find bar (<kbd>⌥⌘F</kbd> adds Replace), or highlighted matches in the preview |
+| <kbd>⌘G</kbd> · <kbd>⇧⌘G</kbd> | Next · previous match |
 | <kbd>⌘B</kbd> · <kbd>⌘I</kbd> · <kbd>⌘E</kbd> · <kbd>⌘K</kbd> | Bold · Italic · Inline code · Link |
 | <kbd>⇧⌘X</kbd> · <kbd>⇧⌘H</kbd> · <kbd>⇧⌘E</kbd> · <kbd>⇧⌘I</kbd> | Strikethrough · Highlight · Code block · Image |
 | <kbd>⌘1</kbd> … <kbd>⌘6</kbd> | Heading 1 … 6 (press again to remove) |
@@ -168,7 +170,7 @@ The divider between the panes can be dragged, and every window remembers its lay
 | Plan 2 | M2 (native) | Native LaTeX, code highlighting, HTML subset, `<details>`, front matter, `==highlight==` | ✅ |
 | Plan 3 | M3 | Editor syntax highlighting, themes, list continuation, formatting shortcuts, toolbar | ✅ |
 | Plan 4 | M2 (web) | WebRenderKit: Mermaid, Graphviz, KaTeX fallback, raw-HTML snapshots | 🔜 |
-| Plan 5 | M4 | Synced scrolling, outline sidebar, anchors, links between documents, find in preview | |
+| Plan 5 | M4 | Synced scrolling, outline sidebar, anchors, links between documents | |
 | Plan 6 | M5 | Themes and Settings | |
 | Plan 7 | M6 | Export to HTML and PDF, print | |
 | Plan 8 | M7 | Performance and accessibility pass, Quick Look extension, Homebrew cask | |

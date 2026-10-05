@@ -41,6 +41,7 @@ public final class EditorCoordinator: NSObject, NSTextViewDelegate {
         self.textView = textView
         self.scrollView = scrollView
         controller?.textView = textView
+        textView.onBecomeFirstResponder = { [weak controller] in controller?.onFocus?() }
 
         let highlighter = EditorHighlighter(theme: theme, configuration: configuration)
         self.highlighter = highlighter
