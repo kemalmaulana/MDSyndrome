@@ -187,8 +187,8 @@ The divider between the panes can be dragged, and every window remembers its lay
 | Plan 4 | M2 (web) | WebRenderKit: Mermaid, Graphviz, KaTeX fallback, raw-HTML snapshots | ✅ |
 | Plan 5 | M4 | Synced scrolling, outline, anchors, links between documents, ticking tasks in the preview | ✅ |
 | Plan 6 | M5 | Themes and Settings window, user theme folder | ✅ |
-| Plan 7 | M6 | Export to HTML and PDF, print | |
-| Plan 8 | M7 | Performance and accessibility pass, Quick Look extension, Homebrew cask | |
+| Plan 7 | M6 | Export to HTML and PDF, copy HTML, print | ✅ |
+| Plan 8 | M7 | All the tests for Plans 6–8 in one pass, performance and accessibility pass, release polish | |
 
 ## 🚀 Shipping a release (maintainers)
 
