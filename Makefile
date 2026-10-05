@@ -14,8 +14,10 @@ build: gen
 test-core:
 	swift test --package-path Packages/MDKit
 
+# xcodebuild does not pass its environment to the test host; TEST_RUNNER_ variables are the way in.
+# Tests that must not run on CI read CI.
 test-app: gen
-	$(XCODEBUILD) -only-testing:MDSyndromeTests test
+	$(if $(CI),TEST_RUNNER_CI=$(CI) ,)$(XCODEBUILD) -only-testing:MDSyndromeTests test
 
 # Drives the real app: takes over keyboard and mouse for about a minute.
 test-ui: gen
