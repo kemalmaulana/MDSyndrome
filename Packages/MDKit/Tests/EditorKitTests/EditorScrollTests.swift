@@ -268,3 +268,22 @@ private final class ScrollHarness {
         #expect(!editor.textView.isContinuousSpellCheckingEnabled)
     }
 }
+
+@MainActor
+@Suite(.requiresWindowServer, .serialized) struct EditorMaxWidthTests {
+    @Test func theTextColumnIsCappedAndCentred() async {
+        let editor = await ScrollHarness("some text")
+        defer { editor.close() }
+        let width = editor.scrollView.contentSize.width
+        var configuration = EditorConfiguration.macDownDefaults
+        configuration.maxTextWidth = 300
+        editor.coordinator.apply(theme: .tomorrowPlus, configuration: configuration)
+        #expect(abs(editor.textView.textContainerInset.width - ((width - 300) / 2).rounded()) <= 1)
+        configuration.maxTextWidth = 0
+        editor.coordinator.apply(theme: .tomorrowPlus, configuration: configuration)
+        #expect(abs(Double(editor.textView.textContainerInset.width) - configuration.horizontalInset) < 0.5)
+        configuration.maxTextWidth = width * 4   // wider than the window: the configured margin stays
+        editor.coordinator.apply(theme: .tomorrowPlus, configuration: configuration)
+        #expect(abs(Double(editor.textView.textContainerInset.width) - configuration.horizontalInset) < 0.5)
+    }
+}

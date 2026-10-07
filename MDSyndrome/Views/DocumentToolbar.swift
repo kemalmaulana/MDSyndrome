@@ -12,6 +12,12 @@ struct DocumentToolbar: CustomizableToolbarContent {
     let export: ExportActions
 
     var body: some CustomizableToolbarContent {
+        navigationItems
+        formatItems
+        menuItems
+    }
+
+    @ToolbarContentBuilder private var navigationItems: some CustomizableToolbarContent {
         ToolbarItem(id: "outline", placement: .navigation) {
             Button { outlineVisible.toggle() } label: {
                 Label("Outline", systemImage: "sidebar.leading")
@@ -29,6 +35,9 @@ struct DocumentToolbar: CustomizableToolbarContent {
             .labelStyle(.iconOnly)
             .help("Switch between editor, split view and preview")
         }
+    }
+
+    @ToolbarContentBuilder private var formatItems: some CustomizableToolbarContent {
         formatItem(.bold)
         formatItem(.italic)
         formatItem(.inlineCode)
@@ -36,6 +45,9 @@ struct DocumentToolbar: CustomizableToolbarContent {
         formatItem(.bulletList)
         formatItem(.numberedList)
         formatItem(.blockquote)
+    }
+
+    @ToolbarContentBuilder private var menuItems: some CustomizableToolbarContent {
         ToolbarItem(id: "format.heading", placement: .primaryAction) {
             Menu {
                 commandButtons(FormatCommand.headings)

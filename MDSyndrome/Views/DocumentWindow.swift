@@ -41,6 +41,22 @@ struct DocumentWindow: View {
     private static let outlineWidth: Double = 220
 
     var body: some View {
+        lifecycle
+            .onChange(of: model.settings.syncScroll) { _, enabled in sync.isEnabled = enabled }
+            .onChange(of: model.settings.markdown) { _, options in
+                session.options = options
+                session.textDidChange(document.text)
+            }
+            .onChange(of: layoutMode, initial: true) { _, mode in
+                sync.layoutDidChange(editorVisible: mode != .preview, previewVisible: mode != .editor)
+            }
+            .onChange(of: session.renderCount, initial: true) { _, _ in sync.renderDidChange(session.rendered.sourceMap) }
+            .onChange(of: previewSearch.isPresented) { _, isPresented in if isPresented { activePane = .preview } }
+            .onChange(of: layoutMode) { _, mode in if mode == .editor { previewSearch.close() } }
+            .onChange(of: document.text) { _, newText in session.textDidChange(newText) }
+    }
+
+    private var panes: some View {
         HStack(spacing: 0) {
             if outlineVisible {
                 OutlineSidebar(items: session.rendered.outline, current: currentHeading, select: { sync.navigate(to: $0.id) })
@@ -63,6 +79,10 @@ struct DocumentWindow: View {
             .frame(minWidth: 600)
         }
         .frame(minHeight: 400)
+    }
+
+    private var focused: some View {
+        panes
         .toolbar(id: "document") {
             DocumentToolbar(layoutMode: $layoutMode, outlineVisible: $outlineVisible, editor: editor, editorIsVisible: editorIsVisible, export: exportActions)
         }
@@ -73,6 +93,10 @@ struct DocumentWindow: View {
         .focusedSceneValue(\.findRouter, FindRouter(editor: editorIsVisible ? editor : nil, preview: layoutMode == .editor ? nil : previewSearch,
                                                    layout: layoutMode, pane: activePane))
         .focusedSceneValue(\.reloadDocument, fileURL == nil ? nil : DocumentAction(run: reloadFromDisk))
+    }
+
+    private var lifecycle: some View {
+        focused
         .onAppear {
             let pane = $activePane
             let sync = sync
@@ -88,22 +112,10 @@ struct DocumentWindow: View {
             }
             previewScroller.onNavigate = { [weak sync] id in sync?.previewDidNavigate(to: id) }
         }
-        .onChange(of: model.settings.syncScroll) { _, enabled in sync.isEnabled = enabled }
-        .onChange(of: model.settings.markdown) { _, options in
-            session.options = options
-            session.textDidChange(document.text)
-        }
-        .onChange(of: layoutMode, initial: true) { _, mode in
-            sync.layoutDidChange(editorVisible: mode != .preview, previewVisible: mode != .editor)
-        }
-        .onChange(of: session.renderCount, initial: true) { _, _ in sync.renderDidChange(session.rendered.sourceMap) }
-        .onChange(of: previewSearch.isPresented) { _, isPresented in if isPresented { activePane = .preview } }
-        .onChange(of: layoutMode) { _, mode in if mode == .editor { previewSearch.close() } }
         .task {
             session.options = model.settings.markdown
             await session.renderNow(document.text)
         }
-        .onChange(of: document.text) { _, newText in session.textDidChange(newText) }
         .onReceive(NotificationCenter.default.publisher(for: NSApplication.didBecomeActiveNotification)) { _ in pullChangesFromDisk() }
     }
 
