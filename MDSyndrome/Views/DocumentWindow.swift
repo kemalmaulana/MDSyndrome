@@ -118,6 +118,7 @@ struct DocumentWindow: View {
             await session.renderNow(document.text)
         }
         .onReceive(NotificationCenter.default.publisher(for: NSApplication.didBecomeActiveNotification)) { _ in pullChangesFromDisk() }
+        .modifier(EditorDocumentFolder(editor: editor, fileURL: fileURL))
     }
 
     /// What gets exported: the current render, on the theme chosen in Settings at normal size.
@@ -165,5 +166,24 @@ struct DocumentWindow: View {
         DocumentReloader.reload(nsDocument, completion: { reloaded in
             if reloaded { previewReloadToken += 1 }
         })
+    }
+}
+
+/// Keeps the editor told where the document lives, and what to say when an image arrives before it is saved.
+private struct EditorDocumentFolder: ViewModifier {
+    let editor: EditorController
+    let fileURL: URL?
+
+    func body(content: Content) -> some View {
+        content
+            .task(id: fileURL) {
+                editor.documentFolder = fileURL?.deletingLastPathComponent()
+                editor.onImageNeedsSavedDocument = {
+                    let alert = NSAlert()
+                    alert.messageText = "Save the document first"
+                    alert.informativeText = "Pasted and dropped images are saved next to the document, which has no file yet."
+                    if let window = NSApp.keyWindow { alert.beginSheetModal(for: window) } else { alert.runModal() }
+                }
+            }
     }
 }

@@ -24,6 +24,8 @@ enum SettingsKey {
     static let editorAutoPair = "editorAutoPair"
     static let editorContinueLists = "editorContinueLists"
     static let editorRenumberLists = "editorRenumberLists"
+    /// A folder name below the document's folder for pasted images; empty means the document's own folder.
+    static let editorImageFolder = "editorImageFolder"
 
     static let tables = "mdTables"
     static let taskLists = "mdTaskLists"
@@ -101,5 +103,16 @@ struct AppSettings: Equatable {
         editor.renumberLists = bool(SettingsKey.editorRenumberLists, editor.renumberLists)
         let width = Int(min(max(double(SettingsKey.editorTabWidth, 4), 1), 8))
         editor.indentUnit = bool(SettingsKey.editorUseTabs, false) ? "\t" : String(repeating: " ", count: width)
+        editor.imageFolder = Self.imageFolder(defaults.string(forKey: SettingsKey.editorImageFolder))
+    }
+
+    /// A single folder name below the document's folder: no slashes, no `..`, nothing hidden. Anything else falls back to
+    /// `assets`; an explicitly empty value means the document's own folder.
+    static func imageFolder(_ raw: String?) -> String {
+        guard let raw else { return "assets" }
+        let name = raw.trimmingCharacters(in: .whitespacesAndNewlines)
+        if name.isEmpty { return "" }
+        let bad = name.contains("/") || name.contains("\\") || name.hasPrefix(".")
+        return bad ? "assets" : name
     }
 }

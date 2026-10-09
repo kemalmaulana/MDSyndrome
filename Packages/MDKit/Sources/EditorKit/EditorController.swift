@@ -21,6 +21,12 @@ public final class EditorController {
     /// keys, the caret following typing), only when that line changed.
     public var onScroll: ((Int) -> Void)?
 
+    /// The folder the document lives in; nil while it is unsaved. Pasted and dropped images are saved relative to it.
+    public var documentFolder: URL?
+
+    /// Called when an image is pasted or dropped into a document that has no file yet; nothing is written.
+    public var onImageNeedsSavedDocument: (() -> Void)?
+
     var scrolling: EditorScrollSupport?
 
     public init() {}

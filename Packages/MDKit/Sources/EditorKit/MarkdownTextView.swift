@@ -17,6 +17,10 @@ final class MarkdownTextView: NSTextView {
     /// editor is the only way the window learns the user is back.
     var onActivity: (() -> Void)?
 
+    /// Where the document lives (nil while unsaved) and what to do when an image arrives without one. Set by the coordinator.
+    var documentFolderProvider: (() -> URL?)?
+    var onImageNeedsSavedDocument: (() -> Void)?
+
     override func becomeFirstResponder() -> Bool {
         let accepted = super.becomeFirstResponder()
         if accepted { onActivity?() }
@@ -99,5 +103,74 @@ final class MarkdownTextView: NSTextView {
         } else {
             super.deleteBackward(sender)
         }
+    }
+
+    // MARK: Images (ED-11)
+
+    /// Image items on a pasteboard, or nil when it carries text (text wins) or nothing we take.
+    func imageItems(on pasteboard: NSPasteboard) -> [ImageInsertion.Item]? {
+        if pasteboard.availableType(from: [.string]) != nil { return nil }
+        if let urls = pasteboard.readObjects(forClasses: [NSURL.self], options: [.urlReadingFileURLsOnly: true]) as? [URL], !urls.isEmpty {
+            let images = urls.filter(ImageInsertion.isImageFile)
+            return images.count == urls.count ? images.map { .file($0) } : nil
+        }
+        if let png = pasteboard.data(forType: .png) { return [.bitmap(png)] }
+        if let tiff = pasteboard.data(forType: .tiff), let png = NSBitmapImageRep(data: tiff)?.representation(using: .png, properties: [:]) {
+            return [.bitmap(png)]
+        }
+        return nil
+    }
+
+    /// Saves the images and inserts their Markdown at `location` as one undoable edit. Without a document folder nothing is
+    /// written and the window is told to ask for a save. A failed write shows the error and inserts nothing.
+    @discardableResult
+    func insertImages(_ items: [ImageInsertion.Item], at location: Int) -> Bool {
+        guard let folder = documentFolderProvider?() else {
+            onImageNeedsSavedDocument?()
+            return true
+        }
+        let plan = ImageInsertion.plan(items: items, documentFolder: folder, imageFolder: behavior.imageFolder, now: Date(),
+                                       exists: { FileManager.default.fileExists(atPath: $0.path) })
+        do {
+            for action in plan.actions {
+                switch action {
+                case .write(let data, let destination):
+                    try FileManager.default.createDirectory(at: destination.deletingLastPathComponent(), withIntermediateDirectories: true)
+                    try data.write(to: destination, options: .atomic)
+                case .copy(let source, let destination):
+                    try FileManager.default.createDirectory(at: destination.deletingLastPathComponent(), withIntermediateDirectories: true)
+                    try FileManager.default.copyItem(at: source, to: destination)
+                }
+            }
+        } catch {
+            if let window { NSAlert(error: error).beginSheetModal(for: window) } else { NSAlert(error: error).runModal() }
+            return true
+        }
+        let at = NSRange(location: min(max(location, 0), text.length), length: 0)
+        let end = at.location + (plan.markdown as NSString).length
+        apply(TextEdit(range: at, replacement: plan.markdown, selection: NSRange(location: end, length: 0)), actionName: "Insert Image")
+        return true
+    }
+
+    override func paste(_ sender: Any?) {
+        if hasSingleSelection, let items = imageItems(on: .general) {
+            insertImages(items, at: selectedRange().location)
+        } else {
+            super.paste(sender)
+        }
+    }
+
+    override func draggingEntered(_ sender: any NSDraggingInfo) -> NSDragOperation {
+        imageItems(on: sender.draggingPasteboard) != nil ? .copy : super.draggingEntered(sender)
+    }
+
+    override func draggingUpdated(_ sender: any NSDraggingInfo) -> NSDragOperation {
+        imageItems(on: sender.draggingPasteboard) != nil ? .copy : super.draggingUpdated(sender)
+    }
+
+    override func performDragOperation(_ sender: any NSDraggingInfo) -> Bool {
+        guard let items = imageItems(on: sender.draggingPasteboard) else { return super.performDragOperation(sender) }
+        let point = convert(sender.draggingLocation, from: nil)
+        return insertImages(items, at: characterIndexForInsertion(at: point))
     }
 }

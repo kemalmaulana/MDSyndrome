@@ -51,6 +51,7 @@ private struct EditorSettings: View {
     @AppStorage(SettingsKey.editorAutoPair) private var autoPair = true
     @AppStorage(SettingsKey.editorContinueLists) private var continueLists = true
     @AppStorage(SettingsKey.editorRenumberLists) private var renumberLists = true
+    @AppStorage(SettingsKey.editorImageFolder) private var imageFolder = "assets"
 
     private static let fonts: [String] = NSFontManager.shared.availableFontNames(with: .fixedPitchFontMask) ?? ["Menlo-Regular"]
 
@@ -80,6 +81,11 @@ private struct EditorSettings: View {
                 Toggle("Close brackets and quotes automatically", isOn: $autoPair)
                 Toggle("Continue lists and quotes on Return", isOn: $continueLists)
                 Toggle("Renumber ordered lists", isOn: $renumberLists)
+            }
+            Section("Images") {
+                TextField("Folder for pasted images", text: $imageFolder, prompt: Text("assets"))
+                Text("Images you paste or drop are saved in this folder next to the document. Leave it empty to save them beside the document.")
+                    .font(.caption).foregroundStyle(.secondary)
             }
             ThemesFolderSection()
         }
