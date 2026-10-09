@@ -38,7 +38,8 @@ struct DocumentWindow: View {
     }
 
     private var editorIsVisible: Bool { layoutMode != .preview }
-    private static let outlineWidth: Double = 220
+    /// The outline column's width; dragging its divider changes it.
+    @SceneStorage("outlineWidth") private var outlineWidth: Double = OutlineWidth.standard
 
     var body: some View {
         lifecycle
@@ -60,8 +61,8 @@ struct DocumentWindow: View {
         HStack(spacing: 0) {
             if outlineVisible {
                 OutlineSidebar(items: session.rendered.outline, current: currentHeading, select: { sync.navigate(to: $0.id) })
-                    .frame(width: Self.outlineWidth)
-                Divider()
+                    .frame(width: OutlineWidth.clamped(outlineWidth))
+                OutlineResizeHandle(width: $outlineWidth)
             }
             VStack(spacing: 0) {
                 PaneLayout(mode: layoutMode, ratio: $splitRatio) {
