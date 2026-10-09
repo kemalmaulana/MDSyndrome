@@ -11,6 +11,10 @@ struct MDSyndromeApp: App {
         DocumentGroup(newDocument: MarkdownFileDocument()) { file in
             DocumentWindow(document: file.$document, fileURL: file.fileURL, webRenderer: webRenderer)
         }
+        .defaultWindowPlacement { _, context in
+            // A new window opens zoomed: it fills the screen below the menu bar and above the Dock.
+            WindowPlacement(.center, size: context.defaultDisplay.visibleRect.size)
+        }
         .commands {
             FileCommands()
             ViewCommands()
