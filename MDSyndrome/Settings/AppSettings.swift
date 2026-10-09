@@ -8,6 +8,8 @@ enum SettingsKey {
     static let openInPreview = "openInPreview"
     static let loadRemoteImages = "loadRemoteImages"
     static let syncScroll = "syncScroll"
+    /// Quit the app when its last document window closes.
+    static let quitAfterLastWindow = "quitAfterLastWindow"
 
     static let editorTheme = EditorTheme.storageKey
     static let editorFontName = "editorFontName"
@@ -54,6 +56,7 @@ struct AppSettings: Equatable {
     var openInPreview = false
     var loadRemoteImages = true
     var syncScroll = true
+    var quitAfterLastWindow = true
     var editorThemeName = EditorTheme.tomorrowPlus.name
     var previewThemeName = PreviewThemeName.github
     var previewZoom = 1.0
@@ -73,6 +76,7 @@ struct AppSettings: Equatable {
         openInPreview = bool(SettingsKey.openInPreview, openInPreview)
         loadRemoteImages = bool(SettingsKey.loadRemoteImages, loadRemoteImages)
         syncScroll = bool(SettingsKey.syncScroll, syncScroll)
+        quitAfterLastWindow = bool(SettingsKey.quitAfterLastWindow, quitAfterLastWindow)
         editorThemeName = string(SettingsKey.editorTheme, editorThemeName)
         previewThemeName = string(SettingsKey.previewTheme, previewThemeName)
         previewZoom = min(max(double(SettingsKey.previewZoom, previewZoom), Self.zoomRange.lowerBound), Self.zoomRange.upperBound)

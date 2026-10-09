@@ -67,3 +67,33 @@ import Testing
         #expect(session.isCurrent)
     }
 }
+
+@MainActor
+@Suite struct LastWindowQuitTests {
+    @Test func quitsWhenEnabledAndNothingIsLeftOpen() {
+        #expect(LastWindowQuit.shouldQuit(enabled: true, documents: 0, otherVisibleWindows: 0))
+    }
+
+    @Test func staysWhenTheSettingIsOff() {
+        #expect(!LastWindowQuit.shouldQuit(enabled: false, documents: 0, otherVisibleWindows: 0))
+    }
+
+    @Test func staysWhileADocumentIsOpen() {
+        #expect(!LastWindowQuit.shouldQuit(enabled: true, documents: 1, otherVisibleWindows: 0))
+    }
+
+    @Test func staysWhileSettingsOrAnOpenPanelIsOnScreen() {
+        #expect(!LastWindowQuit.shouldQuit(enabled: true, documents: 0, otherVisibleWindows: 1))
+    }
+
+    @Test func theSettingDefaultsToOnAndFollowsTheKey() {
+        #expect(AppSettings().quitAfterLastWindow)
+        let name = "mds-quit-test-\(UUID().uuidString)"
+        let defaults = UserDefaults(suiteName: name)!
+        defer { defaults.removePersistentDomain(forName: name) }
+        #expect(AppSettings(defaults: defaults).quitAfterLastWindow)
+        defaults.set(false, forKey: SettingsKey.quitAfterLastWindow)
+        #expect(!AppSettings(defaults: defaults).quitAfterLastWindow)
+    }
+}
+

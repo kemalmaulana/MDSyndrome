@@ -19,12 +19,17 @@ struct SettingsView: View {
 private struct GeneralSettings: View {
     @AppStorage(SettingsKey.openInPreview) private var openInPreview = false
     @AppStorage(SettingsKey.loadRemoteImages) private var loadRemoteImages = true
+    @AppStorage(SettingsKey.quitAfterLastWindow) private var quitAfterLastWindow = true
 
     var body: some View {
         Form {
             Section("Opening") {
                 Toggle("Open documents in the preview only", isOn: $openInPreview)
                 Text("New windows start without the editor. Switch with ⌥⌘1, ⌥⌘2 and ⌥⌘3.").font(.caption).foregroundStyle(.secondary)
+            }
+            Section("Closing") {
+                Toggle("Quit when the last document window is closed", isOn: $quitAfterLastWindow)
+                Text("Off: the app stays open in the Dock after its last window closes, as most Mac apps do. ⌘Q always quits.").font(.caption).foregroundStyle(.secondary)
             }
             Section("Images") {
                 Toggle("Load remote images", isOn: $loadRemoteImages)

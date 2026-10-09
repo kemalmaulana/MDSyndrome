@@ -52,6 +52,7 @@ It runs natively on Apple Silicon, has no Electron, and renders its preview nati
 | "How long is this thing?" | Live words, characters, lines and reading time | ✅ |
 | "Where was that again?" | Find in the editor and in the preview, with highlighted matches, a match count and next/previous | ✅ v0.3 |
 | "Documents just work" | New, Open, Recent, autosave, Versions, tabs, undo that behaves. A file another program saved is picked up when you come back to the app, or on <kbd>⌘R</kbd> | ✅ |
+| "Closing the window should close the app" | Closing the last document window quits the app, like <kbd>⌘Q</kbd>. Settings ▸ General turns it off if you prefer the Dock behaviour | ✅ |
 | `$E = mc^2$` | Native LaTeX math, inline and display (SwiftMath). A formula it can't typeset is drawn by KaTeX instead (v0.4), and if that fails too its source shows in red | ✅ v0.2 |
 | ```` ```swift ```` | Syntax-highlighted code blocks in 20+ languages, GitHub colours in light and dark | ✅ v0.2 |
 | "My README looks broken" | `<p align="center">`, `<img width>`, badge rows, `<details>`, `<kbd>`, `<sub>`/`<sup>` and YAML front matter render natively | ✅ v0.2 |
@@ -90,7 +91,7 @@ make run
 | Command | What it does |
 |---|---|
 | `make run` | Generate the Xcode project, build Debug, launch the app |
-| `make test` | Lint + package tests (`swift test`) + app unit tests: 669 tests |
+| `make test` | Lint + package tests (`swift test`) + app unit tests: 674 tests |
 | `make perf` | Parse and keystroke timings for a 1 MB document, plus launch time, idle CPU and memory of the app (it comes to the front for about 15 seconds) |
 | `make test-ui` | 18 UI tests that drive the real app. ⚠️ They take over keyboard and mouse for about a minute |
 | `make dist VERSION=1.2.3` | Universal Release build → `dist/` with `.zip`, `.dmg` and `SHA256SUMS.txt` |
