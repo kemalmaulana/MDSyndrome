@@ -1,3 +1,4 @@
+import AppKit
 import MarkdownCore
 import SwiftUI
 import WebRenderKit
@@ -16,17 +17,30 @@ struct InlineText: View {
     @Environment(\.searchLine) private var searchLine
     @Environment(\.webRenderer) private var renderer
     @Environment(\.colorScheme) private var scheme
+    @Environment(\.exportResources) private var export
     @State private var pictures = FormulaPictures()
 
     var body: some View {
-        let failing = renderer == nil ? [] : InlineRenderer.failingFormulas(inlines, fontSize: fontSize ?? theme.bodyFontSize, dark: scheme == .dark)
+        let failing = (renderer == nil && export == nil) ? [] : InlineRenderer.failingFormulas(inlines, fontSize: fontSize ?? theme.bodyFontSize, dark: scheme == .dark)
         InlineRenderer.text(inlines, theme: theme, fontSize: fontSize,
                             highlights: search?.highlights(for: SearchRunKey(line: searchLine, slot: slot)) ?? [],
-                            pictures: pictures.loaded, dark: scheme == .dark)
+                            pictures: export.map { exportedPictures(failing, $0) } ?? pictures.loaded, dark: scheme == .dark)
             .task(id: failing) {
-                if let renderer, !failing.isEmpty {
+                if export == nil, let renderer, !failing.isEmpty {
                     await pictures.load(failing, using: renderer, foreground: theme.text.hex(for: scheme), background: theme.background.hex(for: scheme))
                 }
             }
+    }
+
+    /// The KaTeX pictures an export prepared for the formulas SwiftMath could not typeset.
+    private func exportedPictures(_ keys: [FormulaKey], _ export: ExportResources) -> [FormulaKey: FormulaPicture] {
+        var result: [FormulaKey: FormulaPicture] = [:]
+        for key in keys {
+            let request = PictureRequests.inlineFormula(key, foreground: theme.text.hex(for: scheme), background: theme.background.hex(for: scheme))
+            if case .picture(let rendered)? = export.pictures[request], let image = NSImage(data: rendered.pdf) {
+                result[key] = FormulaPicture(image: image, baseline: rendered.baseline ?? 0)
+            }
+        }
+        return result
     }
 }

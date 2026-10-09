@@ -22,9 +22,10 @@ struct DiagramBlockView: View {
     @Environment(\.previewTheme) private var theme
     @Environment(\.webRenderer) private var renderer
     @Environment(\.colorScheme) private var scheme
+    @Environment(\.exportResources) private var export
 
     var body: some View {
-        if renderer == nil || code.allSatisfy(\.isWhitespace) {
+        if (renderer == nil && export == nil) || code.allSatisfy(\.isWhitespace) {
             CodeBlockView(language: language, code: code)
         } else {
             RenderedPicture(request: request, accessibilityLabel: "Diagram: \(firstLine)", alignment: .center, placeholderHeight: 120) { error in

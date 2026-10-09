@@ -229,6 +229,7 @@ struct MathBlockView: View {
     let latex: String
     @Environment(\.previewTheme) private var theme
     @Environment(\.webRenderer) private var renderer
+    @Environment(\.exportResources) private var export
     @Environment(\.colorScheme) private var scheme
 
     var body: some View {
@@ -244,7 +245,7 @@ struct MathBlockView: View {
             }
             .padding(.vertical, 4)
         case .failure(.syntax(let message)):
-            if renderer != nil {
+            if renderer != nil || export != nil {
                 RenderedPicture(request: katexRequest, accessibilityLabel: latex, alignment: .center, placeholderHeight: 36) { error in
                     failure(message: katexMessage(error) ?? message)
                 }
@@ -283,9 +284,10 @@ struct RawHTMLBlockView: View {
     let html: String
     @Environment(\.previewTheme) private var theme
     @Environment(\.webRenderer) private var renderer
+    @Environment(\.exportResources) private var export
 
     var body: some View {
-        if renderer != nil {
+        if renderer != nil || export != nil {
             HTMLSnapshotView(html: html)
         } else {
             Text(html)

@@ -7,7 +7,8 @@ import SwiftUI
 /// Always the light appearance, on white paper.
 @MainActor
 public enum PDFExporter {
-    public static func export(_ document: MarkdownDocument, theme: PreviewTheme, baseURL: URL?, paperSize: CGSize, margins: NSEdgeInsets) -> Data? {
+    public static func export(_ document: MarkdownDocument, theme: PreviewTheme, baseURL: URL?, paperSize: CGSize, margins: NSEdgeInsets,
+                              resources: ExportResources = ExportResources()) -> Data? {
         let data = NSMutableData()
         var box = CGRect(origin: .zero, size: paperSize)
         guard let consumer = CGDataConsumer(data: data), let pdf = CGContext(consumer: consumer, mediaBox: &box, nil) else { return nil }
@@ -30,6 +31,7 @@ public enum PDFExporter {
             let view = BlockView(block: block)
                 .environment(\.previewTheme, theme)
                 .environment(\.documentBaseURL, baseURL)
+                .environment(\.exportResources, resources)
                 .environment(\.colorScheme, .light)
                 .foregroundStyle(theme.text.color)
                 .frame(width: contentWidth, alignment: .leading)
