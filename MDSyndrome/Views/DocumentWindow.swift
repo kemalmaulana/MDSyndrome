@@ -79,6 +79,7 @@ struct DocumentWindow: View {
             .frame(minWidth: 600)
         }
         .frame(minHeight: 400)
+        .background(WindowZoomBehavior())
     }
 
     private var focused: some View {
