@@ -1,7 +1,9 @@
 import AppKit
 import Foundation
 import MarkdownCore
+import SwiftUI
 import SyntaxHighlighting
+import WebRenderKit
 
 /// Turns a rendered document into HTML for export and Copy HTML (PRD EX-1, EX-2). The file is self-contained and
 /// never holds a script: raw HTML is stripped of scripts, event handlers and `javascript:` addresses.
@@ -10,17 +12,20 @@ public struct HTMLExporter {
     public let theme: PreviewTheme
     public let title: String
     private let slugs: [BlockID: String]
+    private let resources: ExportResources
     private var footnoteIndexes: [Int] = []
 
-    public init(theme: PreviewTheme = .github, title: String = "Document", blocks: [Block] = []) {
+    public init(theme: PreviewTheme = .github, title: String = "Document", blocks: [Block] = [], resources: ExportResources = ExportResources()) {
         self.theme = theme
         self.title = title
+        self.resources = resources
         slugs = DocumentAnchors.headingSlugs(in: blocks)
     }
 
     /// A complete page with the theme's CSS (light and dark).
-    public static func standalone(_ document: MarkdownDocument, theme: PreviewTheme, title: String) -> String {
-        var exporter = HTMLExporter(theme: theme, title: title, blocks: document.blocks)
+    public static func standalone(_ document: MarkdownDocument, theme: PreviewTheme, title: String,
+                                  resources: ExportResources = ExportResources()) -> String {
+        var exporter = HTMLExporter(theme: theme, title: title, blocks: document.blocks, resources: resources)
         let body = exporter.body(document)
         return """
         <!doctype html>
@@ -73,6 +78,7 @@ public struct HTMLExporter {
         case .list(let list):
             return renderList(list)
         case .codeBlock(let language, let code):
+            if let kind = DiagramLanguage.kind(of: language), let figure = diagramFigure(kind, code) { return figure }
             return renderCode(language: language, code: code)
         case .thematicBreak:
             return "<hr>"
@@ -81,7 +87,7 @@ public struct HTMLExporter {
         case .table(let table):
             return renderTable(table)
         case .mathBlock(let latex):
-            return "<p class=\"math-display\">\(mathImage(latex, display: true))</p>"
+            return "<p class=\"math-display\">\(mathImage(latex, display: true, block: true))</p>"
         case .footnoteDefinition:
             return ""
         case .frontMatter(let entries):
@@ -168,14 +174,48 @@ public struct HTMLExporter {
         }
     }
 
-    /// A formula as a `@2x` PNG data-URI image; its source stays in `alt`. A formula SwiftMath cannot typeset is its source in code.
-    private func mathImage(_ latex: String, display: Bool) -> String {
+    /// A formula as a `@2x` PNG data-URI image; its source stays in `alt`. A formula SwiftMath cannot typeset is drawn by
+    /// KaTeX when an export prepared a picture for it, and is its source in code otherwise.
+    private func mathImage(_ latex: String, display: Bool, block: Bool = false) -> String {
         let size = theme.bodyFontSize * (display ? 1.2 : 1)
         guard case .success(let math) = MathRenderer.render(latex, fontSize: size, display: display),
-              let png = Self.png(math.image, scale: 2) else { return "<code>\(Self.escape(latex))</code>" }
+              let png = Self.png(math.image, scale: 2) else {
+            return katexImage(latex, display: display, block: block) ?? "<code>\(Self.escape(latex))</code>"
+        }
         let height = Int(math.image.size.height.rounded())
         let shift = display ? "" : "vertical-align:-\(Int(math.descent.rounded()))px;"
         return "<img class=\"math\" alt=\"\(Self.escape(latex))\" height=\"\(height)\" style=\"\(shift)\" src=\"data:image/png;base64,\(png.base64EncodedString())\">"
+    }
+
+    /// A diagram as a light picture and, when there is one, a dark picture for `prefers-color-scheme: dark`. nil when the
+    /// light picture is missing or failed, so the source is shown as code.
+    private func diagramFigure(_ kind: RenderKind, _ code: String) -> String? {
+        guard let light = pictureData(PictureRequests.diagram(kind, code: code, theme: theme, scheme: .light)) else { return nil }
+        let dark = pictureData(PictureRequests.diagram(kind, code: code, theme: theme, scheme: .dark))
+        let alt = "Diagram: " + (code.split(whereSeparator: \.isNewline).first.map(String.init) ?? "")
+        let source = dark.map { "<source media=\"(prefers-color-scheme: dark)\" srcset=\"data:image/png;base64,\($0.png.base64EncodedString())\">" } ?? ""
+        return "<figure class=\"diagram\"><picture>\(source)<img alt=\"\(Self.escape(alt))\" width=\"\(Int(light.size.width.rounded()))\" src=\"data:image/png;base64,\(light.png.base64EncodedString())\"></picture></figure>"
+    }
+
+    /// A formula SwiftMath rejected, drawn by KaTeX: a light picture plus a dark one. nil when no picture was prepared.
+    private func katexImage(_ latex: String, display: Bool, block: Bool) -> String? {
+        func request(_ scheme: ColorScheme) -> RenderRequest {
+            if block { return PictureRequests.blockFormula(latex, theme: theme, scheme: scheme) }
+            let key = FormulaKey(latex: latex, display: display, fontSize: theme.bodyFontSize, dark: scheme == .dark)
+            return PictureRequests.inlineFormula(key, foreground: theme.text.hex(for: scheme), background: theme.background.hex(for: scheme))
+        }
+        guard let light = pictureData(request(.light)) else { return nil }
+        let dark = pictureData(request(.dark))
+        let shift = display ? "" : "vertical-align:-\(Int(light.baseline.rounded()))px;"
+        let source = dark.map { "<source media=\"(prefers-color-scheme: dark)\" srcset=\"data:image/png;base64,\($0.png.base64EncodedString())\">" } ?? ""
+        return "<picture>\(source)<img class=\"math-katex\" alt=\"\(Self.escape(latex))\" height=\"\(Int(light.size.height.rounded()))\" style=\"\(shift)\" src=\"data:image/png;base64,\(light.png.base64EncodedString())\"></picture>"
+    }
+
+    /// The picture a request produced, as a 2× PNG with its size in points; nil unless the renderer succeeded.
+    private func pictureData(_ request: RenderRequest) -> (png: Data, size: CGSize, baseline: Double)? {
+        guard case .picture(let rendered)? = resources.pictures[request], let image = NSImage(data: rendered.pdf),
+              let png = Self.png(image, scale: 2) else { return nil }
+        return (png, image.size, rendered.baseline ?? 0)
     }
 
     private static func png(_ image: NSImage, scale: CGFloat) -> Data? {
@@ -237,7 +277,7 @@ enum HTMLExportStyle {
             mark { background: \(c(theme.highlightBackground)); color: inherit; }
             li.task { list-style: none; margin-left: -1.4em; }
             .footnotes { color: \(c(theme.secondaryText)); font-size: .875em; } .footnotes .back { text-decoration: none; }
-            img { max-width: 100%; } .math-display { text-align: center; }
+            img { max-width: 100%; } .math-display { text-align: center; } .diagram { text-align: center; margin: 1em 0; } .diagram img { height: auto; }
             """
             for (n, scale) in theme.headingScales.enumerated() {
                 css += "\nh\(n + 1) { font-size: \(String(format: "%.3f", scale))em; margin: 1.2em 0 .5em; font-weight: 600; }"
