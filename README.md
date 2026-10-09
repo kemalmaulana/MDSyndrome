@@ -45,7 +45,8 @@ It runs natively on Apple Silicon, has no Electron, and renders its preview nati
 | "My editor runs under Rosetta" | Universal binary, native on Apple Silicon | ✅ |
 | "I want to see what I'm writing" | Editor, live native preview, or both side by side: <kbd>⌥⌘1</kbd> <kbd>⌥⌘2</kbd> <kbd>⌥⌘3</kbd> | ✅ |
 | "GitHub renders it differently" | Same engine as GitHub ([cmark-gfm](https://github.com/swiftlang/swift-cmark)): tables, task lists, ~~strikethrough~~, autolinks, footnotes | ✅ |
-| "Typing lags on my 1 MB changelog" | Parsing runs off the main thread with a 120 ms debounce; a 1 MB document renders in about 0.15 s | ✅ |
+| "Typing lags on my 1 MB changelog" | Parsing runs off the main thread, and the preview catches up shortly after you pause (about 55 ms for a 200 KB note; a huge file waits at most 120 ms). A keystroke in a 1 MB file costs a fraction of a millisecond; parsing 1 MB takes about 0.15 s ([numbers](#-performance)) | ✅ |
+| "I pasted a screenshot" | Paste or drop a picture into the editor: it is saved next to the document (in `assets/`, changeable in Settings ▸ Editor) and linked. A document with no file yet asks to be saved first | ✅ |
 | "Where did my badges go?" | Relative, absolute and remote images, SVG included | ✅ |
 | "Is this file going to do something weird?" | No script in a document ever runs. Web and mail links open, a link to another Markdown file opens it here, and anything else asks first; a program is never run from a link. A file nested 5,000 levels deep won't crash it | ✅ |
 | "How long is this thing?" | Live words, characters, lines and reading time | ✅ |
@@ -59,7 +60,7 @@ It runs natively on Apple Silicon, has no Electron, and renders its preview nati
 | "Where are my editor colours and shortcuts?" | Markdown syntax highlighting in six themes (Tomorrow+ by default), lists that continue, auto-pairing, a Format menu and toolbar: <kbd>⌘B</kbd> <kbd>⌘I</kbd> <kbd>⌘K</kbd> <kbd>⌘1</kbd>–<kbd>⌘6</kbd> | ✅ v0.3 |
 | "I lose my place" | The editor and the preview scroll together, block by block, even in a 1 MB document. An outline (<kbd>⌃⌘S</kbd>) lists the headings and takes both panes there. `#anchor` links, links to other Markdown files and footnote links (with a way back) work. Click a task's checkbox in the preview to tick it in the source | ✅ v0.5 |
 | "Make it pretty" | A Settings window (<kbd>⌘,</kbd>) with General, Editor, Markdown and Preview tabs, applied live to every open document. Four preview themes (GitHub, Clearness, Solarized, System), six editor themes, preview zoom (<kbd>⌘+</kbd> <kbd>⌘−</kbd> <kbd>⌘0</kbd>), and your own themes as JSON files in `~/Library/Application Support/MDSyndrome/Themes` | ✅ v0.6 |
-| "Send it to my boss" | File ▸ Export as HTML… (one self-contained file, light and dark, no script in it) or PDF (paginated, text stays vector), Copy HTML (<kbd>⌥⌘C</kbd>), and Print (<kbd>⌘P</kbd>). Diagrams export as their source for now | ✅ v0.7 |
+| "Send it to my boss" | File ▸ Export as HTML… (one self-contained file, light and dark, no script in it) or PDF (paginated, text stays vector), Copy HTML (<kbd>⌥⌘C</kbd>), and Print (<kbd>⌘P</kbd>). Diagrams, formulas, images, code blocks and tables are in both files; in the HTML a diagram is a light and a dark picture | ✅ v0.7 |
 
 ✅ ships today · 🧪 in clinical trials (see [the treatment plan](#-treatment-plan))
 
@@ -89,7 +90,8 @@ make run
 | Command | What it does |
 |---|---|
 | `make run` | Generate the Xcode project, build Debug, launch the app |
-| `make test` | Lint + package tests (`swift test`) + app unit tests: 619 tests |
+| `make test` | Lint + package tests (`swift test`) + app unit tests: 669 tests |
+| `make perf` | Parse and keystroke timings for a 1 MB document, plus launch time, idle CPU and memory of the app (it comes to the front for about 15 seconds) |
 | `make test-ui` | 18 UI tests that drive the real app. ⚠️ They take over keyboard and mouse for about a minute |
 | `make dist VERSION=1.2.3` | Universal Release build → `dist/` with `.zip`, `.dmg` and `SHA256SUMS.txt` |
 | `make gen` | Regenerate `MDSyndrome.xcodeproj` from `project.yml` (the project file is never committed) |
@@ -176,9 +178,21 @@ A document with no diagram, no unusual formula and no complex HTML never starts 
 | <kbd>Tab</kbd> · <kbd>⇧Tab</kbd> | Indent · Outdent the line or selection |
 | <kbd>⌘Z</kbd> | Undo the last typed run, not one letter at a time |
 
-The divider between the panes can be dragged, and every window remembers its layout.
+The divider between the panes can be dragged, and so can the outline's; every window remembers its layout. A new window opens filling the screen, and a double-click on the title bar zooms it to a normal size and back instead of entering full screen.
 
-> **Known gaps in v0.7:** Mermaid, Graphviz and KaTeX-fallback figures export as their source rather than as pictures, and images that load asynchronously may be missing from the PDF.
+> **Known gaps:** diagrams export as pictures (PNG), not SVG; the HTML keeps relative paths for local images, so move the images with the file; a `<details>` block prints closed; the editor and preview follow each other block by block, not line by line inside a very tall block; a link to a heading in another file opens the file only.
+
+## 📈 Performance
+
+Measured on an Apple Silicon Mac, release build, with `make perf` (the dense test document is the kitchen sink repeated; the prose one is a changelog):
+
+| What | Target | Measured |
+|---|---|---|
+| A keystroke in a 1.5 MB document (highlighting) | under 16 ms | 0.2 ms |
+| Parsing 200 KB (dense), then the 20 ms wait before the preview updates | preview within 150 ms of a pause | 0.03 s (about 55 ms in all) |
+| Parsing 1 MB (prose / dense, 14,500 blocks) | first render under 1 s | 0.13 s / 0.15 s |
+
+Launch time, idle CPU and memory come from the same command (`scripts/measure-launch.sh`): it opens its own copy of the app, so it needs a moment with your hands off the keyboard. They are not in this table because they depend on the build and on what else the Mac is doing.
 
 ## 🗺 Treatment plan
 
@@ -192,6 +206,7 @@ The divider between the panes can be dragged, and every window remembers its lay
 | Plan 6 | M5 | Themes and Settings window, user theme folder | ✅ |
 | Plan 7 | M6 | Export to HTML and PDF, copy HTML, print | ✅ |
 | Plan 8 | M7 | Tests for Plans 6–7, CI fixes, accessibility check; Quick Look and Homebrew cask still to do | ✅ |
+| Plan 9 | Polish | PDF and HTML exports that match the preview (diagrams, formulas, images, code, tables), paste or drop images, measured performance, resizable outline, window zoom | ✅ |
 
 ## 🚀 Shipping a release (maintainers)
 
