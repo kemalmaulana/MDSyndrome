@@ -78,3 +78,31 @@ extension PreviewTheme {
         """
     }
 }
+
+/// The requests the preview sends to the web renderer. Export builds the same values, so a picture prepared for
+/// an export is found by the view that needs it.
+enum PictureRequests {
+    static func diagram(_ kind: RenderKind, code: String, theme: PreviewTheme, scheme: ColorScheme) -> RenderRequest {
+        RenderRequest(kind: kind, source: code, appearance: RenderAppearance(scheme), foreground: theme.text.hex(for: scheme),
+                      background: theme.background.hex(for: scheme), fontSize: theme.bodyFontSize)
+    }
+
+    /// A `$$ … $$` block SwiftMath could not typeset.
+    static func blockFormula(_ latex: String, theme: PreviewTheme, scheme: ColorScheme) -> RenderRequest {
+        RenderRequest(kind: .katex(display: true), source: latex, appearance: RenderAppearance(scheme), foreground: theme.text.hex(for: scheme),
+                      background: theme.background.hex(for: scheme), fontSize: theme.bodyFontSize * 1.2)
+    }
+
+    /// A formula inside a line of text; `key` carries its font size and appearance.
+    static func inlineFormula(_ key: FormulaKey, foreground: String, background: String) -> RenderRequest {
+        RenderRequest(kind: .katex(display: key.display), source: key.latex, appearance: key.dark ? .dark : .light,
+                      foreground: foreground, background: background, fontSize: key.fontSize)
+    }
+
+    /// A raw HTML block whose images are already inlined as `data:` URIs.
+    static func html(_ body: String, width: Double, theme: PreviewTheme, scheme: ColorScheme) -> RenderRequest {
+        RenderRequest(kind: .html, source: body, appearance: RenderAppearance(scheme), foreground: theme.text.hex(for: scheme),
+                      background: theme.background.hex(for: scheme), fontSize: theme.bodyFontSize, width: width,
+                      style: theme.htmlStyleSheet(for: scheme))
+    }
+}

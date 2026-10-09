@@ -256,9 +256,7 @@ struct MathBlockView: View {
     }
 
     private var katexRequest: RenderRequest {
-        RenderRequest(kind: .katex(display: true), source: latex, appearance: RenderAppearance(scheme),
-                      foreground: theme.text.hex(for: scheme),
-                      background: theme.background.hex(for: scheme), fontSize: theme.bodyFontSize * 1.2)
+        PictureRequests.blockFormula(latex, theme: theme, scheme: scheme)
     }
 
     /// KaTeX's message names the unsupported command more helpfully than SwiftMath's; ignore its own failures.

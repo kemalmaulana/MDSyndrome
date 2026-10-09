@@ -41,8 +41,7 @@ struct HTMLSnapshotView: View {
     }
 
     private func request(for body: String) -> RenderRequest {
-        RenderRequest(kind: .html, source: body, appearance: RenderAppearance(scheme), foreground: theme.text.hex(for: scheme),
-                      background: theme.background.hex(for: scheme), fontSize: theme.bodyFontSize, width: width, style: theme.htmlStyleSheet(for: scheme))
+        PictureRequests.html(body, width: width, theme: theme, scheme: scheme)
     }
 
     private var source: some View {
