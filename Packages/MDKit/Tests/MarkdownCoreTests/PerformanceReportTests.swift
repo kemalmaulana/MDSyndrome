@@ -16,11 +16,27 @@ struct PerformanceReportTests {
         return text
     }
 
-    @Test func parseOneMegabyte() throws {
-        let text = try Self.largeDocument()
+    @Test func parseTimes() throws {
+        for bytes in [200_000, 1_000_000] {
+            let text = try Self.largeDocument(bytes: bytes)
+            let clock = ContinuousClock()
+            var best = Duration.seconds(1_000)
+            for _ in 0..<3 { best = min(best, clock.measure { _ = MarkdownPipeline.render(text, options: .default) }) }
+            print("PERF NF-4 parse \(text.utf8.count / 1_000) KB (\(MarkdownPipeline.render(text, options: .default).document.blocks.count) blocks): \(best)")
+        }
+    }
+
+    /// A changelog-like document: headings, bullets and short paragraphs, the shape of most long Markdown files.
+    @Test func parseProse() {
+        var text = ""
+        var n = 0
+        while text.utf8.count < 1_000_000 {
+            n += 1
+            text += "## Release 1.\(n)\n\n- Fixed a crash when *opening* a file with `long` names (#\(n))\n- Added [a link](https://example.com/\(n)) and **bold** text\n- Changed the default for option \(n)\n\nA short paragraph that explains the release in a sentence or two, with a [reference](https://example.com).\n\n"
+        }
         let clock = ContinuousClock()
         var best = Duration.seconds(1_000)
         for _ in 0..<3 { best = min(best, clock.measure { _ = MarkdownPipeline.render(text, options: .default) }) }
-        print("PERF parse 1 MB (\(text.utf8.count) bytes, \(MarkdownPipeline.render(text, options: .default).document.blocks.count) blocks): \(best)")
+        print("PERF NF-4 parse prose \(text.utf8.count / 1_000) KB (\(n) releases): \(best)")
     }
 }
