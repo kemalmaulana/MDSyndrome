@@ -341,11 +341,15 @@ private func showPreview(_ markdown: String, renderer: (any WebRendering)?, dark
     window.styleMask = [.titled, .resizable]
     window.setFrame(NSRect(x: -20000, y: -20000, width: width, height: 900), display: false)
     window.orderFrontRegardless()
+    // The window is off screen, so its first layout would wait for a display cycle that a busy main thread (other suites
+    // starting WebKit) can delay; lay it out now so the width and the pictures do not depend on that timing.
+    window.contentView?.layoutSubtreeIfNeeded()
     return window
 }
 
+/// Waits for `condition`, which is checked every 30 ms. The ceiling is generous because a passing test never waits for it.
 @MainActor
-private func waitFor(_ what: String, seconds: Double = 5, _ condition: () -> Bool) async {
+private func waitFor(_ what: String, seconds: Double = 15, _ condition: () -> Bool) async {
     let deadline = ContinuousClock.now + .seconds(seconds)
     while !condition() {
         guard ContinuousClock.now < deadline else { Issue.record("timed out waiting for \(what)"); return }
