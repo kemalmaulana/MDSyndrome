@@ -4,25 +4,29 @@ import SwiftUI
 struct TableBlockView: View {
     let table: TableBlock
     @Environment(\.previewTheme) private var theme
+    @Environment(\.exportResources) private var export
 
+    /// An export has no scroll view (`ImageRenderer` cannot draw one): the grid takes the page's width and cells wrap.
     var body: some View {
-        ScrollView(.horizontal) {
-            Grid(alignment: .leading, horizontalSpacing: 0, verticalSpacing: 0) {
-                GridRow {
-                    ForEach(table.header.indices, id: \.self) { column in
-                        cell(table.header[column], column: column, row: nil)
-                    }
+        if export != nil { grid } else { ScrollView(.horizontal) { grid } }
+    }
+
+    private var grid: some View {
+        Grid(alignment: .leading, horizontalSpacing: 0, verticalSpacing: 0) {
+            GridRow {
+                ForEach(table.header.indices, id: \.self) { column in
+                    cell(table.header[column], column: column, row: nil)
                 }
-                ForEach(table.rows.indices, id: \.self) { row in
-                    GridRow {
-                        ForEach(table.rows[row].indices, id: \.self) { column in
-                            cell(table.rows[row][column], column: column, row: row)
-                        }
+            }
+            ForEach(table.rows.indices, id: \.self) { row in
+                GridRow {
+                    ForEach(table.rows[row].indices, id: \.self) { column in
+                        cell(table.rows[row][column], column: column, row: row)
                     }
                 }
             }
-            .overlay(Rectangle().stroke(theme.border.color, lineWidth: 1))
         }
+        .overlay(Rectangle().stroke(theme.border.color, lineWidth: 1))
     }
 
     /// `row == nil` is the header row.

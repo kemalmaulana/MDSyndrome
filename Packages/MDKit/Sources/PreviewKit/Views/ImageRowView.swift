@@ -39,11 +39,12 @@ extension Array where Element == Inline {
 struct ImageRowView: View {
     let images: [RowImage]
     @Environment(\.blockAlignment) private var alignment
+    @Environment(\.exportResources) private var export
 
     var body: some View {
         FlowLayout(spacing: 6, alignment: alignment) {
             ForEach(Array(images.enumerated()), id: \.offset) { _, image in
-                if let link = image.link, let url = URL(string: link) {
+                if export == nil, let link = image.link, let url = URL(string: link) {
                     // Link goes through the environment's OpenURLAction, i.e. LinkPolicy.
                     Link(destination: url) {
                         ImageBlockView(source: image.source, alt: image.alt, width: image.width)

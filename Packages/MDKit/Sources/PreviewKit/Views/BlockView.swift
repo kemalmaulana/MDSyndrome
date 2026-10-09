@@ -199,6 +199,7 @@ struct FootnoteView: View {
     let index: Int
     let blocks: [Block]
     @Environment(\.previewTheme) private var theme
+    @Environment(\.exportResources) private var export
 
     var body: some View {
         VStack(alignment: .leading, spacing: 8) {
@@ -210,7 +211,10 @@ struct FootnoteView: View {
                 VStack(alignment: .leading, spacing: 8) {
                     ForEach(blocks) { BlockView(block: $0) }
                 }
-                if let back = URL(string: "#fnref-\(index)") {
+                if export != nil {
+                    // Paper has nothing to follow, and `ImageRenderer` cannot draw a link control.
+                    Text("\u{21A9}\u{FE0E}").foregroundStyle(theme.link.color)
+                } else if let back = URL(string: "#fnref-\(index)") {
                     Link(destination: back) { Text("\u{21A9}\u{FE0E}") }
                         .foregroundStyle(theme.link.color)
                         .help("Back to the reference")
