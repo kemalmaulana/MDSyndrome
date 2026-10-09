@@ -53,11 +53,14 @@ public enum ImageInsertion {
                 actions.append(.write(data, to: destination))
                 lines.append("![](\(link(to: destination, from: documentFolder)))")
             case .file(let url):
-                let alt = url.deletingPathExtension().lastPathComponent.filter { $0 != "[" && $0 != "]" }
+                // macOS hands back file names decomposed (e + a combining accent); links and copies use the composed form,
+                // which is what other systems and Markdown tools expect.
+                let name = url.lastPathComponent.precomposedStringWithCanonicalMapping
+                let alt = (name as NSString).deletingPathExtension.filter { $0 != "[" && $0 != "]" }
                 if let inside = relativePath(of: url, in: documentFolder) {
                     lines.append("![\(alt)](\(encode(inside)))")
                 } else {
-                    let destination = free(url.lastPathComponent)
+                    let destination = free(name)
                     actions.append(.copy(from: url, to: destination))
                     lines.append("![\(alt)](\(link(to: destination, from: documentFolder)))")
                 }
@@ -88,6 +91,7 @@ public enum ImageInsertion {
     private static func encode(_ path: String) -> String {
         var allowed = CharacterSet.urlPathAllowed
         allowed.remove(charactersIn: "()")
-        return path.addingPercentEncoding(withAllowedCharacters: allowed) ?? path
+        let composed = path.precomposedStringWithCanonicalMapping
+        return composed.addingPercentEncoding(withAllowedCharacters: allowed) ?? composed
     }
 }
