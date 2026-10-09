@@ -27,8 +27,7 @@ final class FormulaPictures {
 
     func load(_ formulas: [FormulaKey], using renderer: any WebRendering, foreground: String, background: String) async {
         for key in formulas where requested.insert(key).inserted {
-            let request = RenderRequest(kind: .katex(display: key.display), source: key.latex, appearance: key.dark ? .dark : .light,
-                                        foreground: foreground, background: background, fontSize: key.fontSize)
+            let request = PictureRequests.inlineFormula(key, foreground: foreground, background: background)
             guard let rendered = try? await renderer.render(request), let image = NSImage(data: rendered.pdf) else { continue }
             loaded[key] = FormulaPicture(image: image, baseline: rendered.baseline ?? 0)
         }

@@ -16,7 +16,11 @@ final class DocumentSession {
     var isCurrent: Bool { renderedGeneration == generation }
     var options: MarkdownOptions
 
+    /// The longest the session waits after an edit; the wait shrinks for documents that parse quickly (see `wait`).
     @ObservationIgnored private let debounce: Duration
+    /// How long the latest parse took. A small document is shown right after a pause in typing; a big one waits longer, so
+    /// typing does not keep the parser busy.
+    @ObservationIgnored private var lastParse: Duration = .zero
     @ObservationIgnored private let renderer: Renderer
     @ObservationIgnored private var pending: Task<Void, Never>?
     /// Bumped on every render request; a finished render is published only if it is still the latest.
@@ -39,11 +43,18 @@ final class DocumentSession {
         pending?.cancel()
         generation += 1
         let request = generation
-        pending = Task { [debounce] in
-            try? await Task.sleep(for: debounce)
+        let wait = self.wait
+        pending = Task {
+            try? await Task.sleep(for: wait)
             guard !Task.isCancelled else { return }
             await self.render(text, request: request)
         }
+    }
+
+    /// A quarter of the last parse time, at least 20 ms and at most `debounce`: a 200 KB document (about 125 ms to parse)
+    /// is on screen about 155 ms after a pause (PRD NF-4), a 1 MB one waits the full `debounce`.
+    private var wait: Duration {
+        min(debounce, max(.milliseconds(20), lastParse / 4))
     }
 
     /// Renders now, cancelling any pending debounced render (initial load, tests).
@@ -56,7 +67,12 @@ final class DocumentSession {
     private func render(_ text: String, request: Int) async {
         let renderer = renderer
         let options = options
+        let signposter = Signposts.signposter
+        let interval = signposter.beginInterval("render document", id: signposter.makeSignpostID())
+        let started = ContinuousClock.now
         let result = await Task.detached(priority: .userInitiated) { renderer(text, options) }.value
+        lastParse = ContinuousClock.now - started
+        signposter.endInterval("render document", interval)
         guard request == generation else { return }
         rendered = result
         renderedGeneration = request

@@ -199,6 +199,7 @@ struct FootnoteView: View {
     let index: Int
     let blocks: [Block]
     @Environment(\.previewTheme) private var theme
+    @Environment(\.exportResources) private var export
 
     var body: some View {
         VStack(alignment: .leading, spacing: 8) {
@@ -210,7 +211,10 @@ struct FootnoteView: View {
                 VStack(alignment: .leading, spacing: 8) {
                     ForEach(blocks) { BlockView(block: $0) }
                 }
-                if let back = URL(string: "#fnref-\(index)") {
+                if export != nil {
+                    // Paper has nothing to follow, and `ImageRenderer` cannot draw a link control.
+                    Text("\u{21A9}\u{FE0E}").foregroundStyle(theme.link.color)
+                } else if let back = URL(string: "#fnref-\(index)") {
                     Link(destination: back) { Text("\u{21A9}\u{FE0E}") }
                         .foregroundStyle(theme.link.color)
                         .help("Back to the reference")
@@ -229,6 +233,7 @@ struct MathBlockView: View {
     let latex: String
     @Environment(\.previewTheme) private var theme
     @Environment(\.webRenderer) private var renderer
+    @Environment(\.exportResources) private var export
     @Environment(\.colorScheme) private var scheme
 
     var body: some View {
@@ -244,7 +249,7 @@ struct MathBlockView: View {
             }
             .padding(.vertical, 4)
         case .failure(.syntax(let message)):
-            if renderer != nil {
+            if renderer != nil || export != nil {
                 RenderedPicture(request: katexRequest, accessibilityLabel: latex, alignment: .center, placeholderHeight: 36) { error in
                     failure(message: katexMessage(error) ?? message)
                 }
@@ -256,9 +261,7 @@ struct MathBlockView: View {
     }
 
     private var katexRequest: RenderRequest {
-        RenderRequest(kind: .katex(display: true), source: latex, appearance: RenderAppearance(scheme),
-                      foreground: theme.text.hex(for: scheme),
-                      background: theme.background.hex(for: scheme), fontSize: theme.bodyFontSize * 1.2)
+        PictureRequests.blockFormula(latex, theme: theme, scheme: scheme)
     }
 
     /// KaTeX's message names the unsupported command more helpfully than SwiftMath's; ignore its own failures.
@@ -285,9 +288,10 @@ struct RawHTMLBlockView: View {
     let html: String
     @Environment(\.previewTheme) private var theme
     @Environment(\.webRenderer) private var renderer
+    @Environment(\.exportResources) private var export
 
     var body: some View {
-        if renderer != nil {
+        if renderer != nil || export != nil {
             HTMLSnapshotView(html: html)
         } else {
             Text(html)

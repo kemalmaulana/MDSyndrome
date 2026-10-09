@@ -49,6 +49,9 @@ public final class EditorCoordinator: NSObject, NSTextViewDelegate {
             }
         }
         controller?.textView = textView
+        textView.registerForDraggedTypes(textView.registeredDraggedTypes + [.fileURL, .png, .tiff])
+        textView.documentFolderProvider = { [weak controller] in controller?.documentFolder }
+        textView.onImageNeedsSavedDocument = { [weak controller] in controller?.onImageNeedsSavedDocument?() }
         textView.onActivity = { [weak controller] in controller?.onFocus?() }
 
         let highlighter = EditorHighlighter(theme: theme, configuration: configuration)

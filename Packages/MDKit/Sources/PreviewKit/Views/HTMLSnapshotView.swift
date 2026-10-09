@@ -11,6 +11,7 @@ struct HTMLSnapshotView: View {
     @Environment(\.documentBaseURL) private var baseURL
     @Environment(\.previewReloadToken) private var reloadToken
     @Environment(\.loadRemoteImages) private var loadRemoteImages
+    @Environment(\.exportResources) private var export
     @State private var width: Double = 0
     @State private var prepared: String?
 
@@ -22,6 +23,17 @@ struct HTMLSnapshotView: View {
     }
 
     var body: some View {
+        if let export { exported(export) } else { live }
+    }
+
+    /// An export draws the block from what was prepared: its images inlined, laid out at the page's content width.
+    private func exported(_ export: ExportResources) -> some View {
+        RenderedPicture(request: PictureRequests.html(export.inlinedHTML[html] ?? html, width: export.contentWidth, theme: theme, scheme: scheme),
+                        accessibilityLabel: spokenText, alignment: .leading, placeholderHeight: 40) { _ in source }
+            .frame(maxWidth: .infinity, alignment: .leading)
+    }
+
+    private var live: some View {
         Group {
             if let prepared, width > 0 {
                 RenderedPicture(request: request(for: prepared), accessibilityLabel: spokenText, alignment: .leading,
@@ -41,8 +53,7 @@ struct HTMLSnapshotView: View {
     }
 
     private func request(for body: String) -> RenderRequest {
-        RenderRequest(kind: .html, source: body, appearance: RenderAppearance(scheme), foreground: theme.text.hex(for: scheme),
-                      background: theme.background.hex(for: scheme), fontSize: theme.bodyFontSize, width: width, style: theme.htmlStyleSheet(for: scheme))
+        PictureRequests.html(body, width: width, theme: theme, scheme: scheme)
     }
 
     private var source: some View {

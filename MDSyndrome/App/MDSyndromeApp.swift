@@ -7,6 +7,11 @@ struct MDSyndromeApp: App {
     /// document first needs a diagram, a fallback formula or a complex HTML block.
     @State private var webRenderer = WebRenderer()
 
+    init() {
+        // Tests host the app and close windows all the time; they must not be quit from under.
+        if ProcessInfo.processInfo.environment["XCTestConfigurationFilePath"] == nil { LastWindowQuit.install() }
+    }
+
     var body: some Scene {
         DocumentGroup(newDocument: MarkdownFileDocument()) { file in
             DocumentWindow(document: file.$document, fileURL: file.fileURL, webRenderer: webRenderer)

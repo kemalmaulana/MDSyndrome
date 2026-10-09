@@ -19,12 +19,17 @@ struct SettingsView: View {
 private struct GeneralSettings: View {
     @AppStorage(SettingsKey.openInPreview) private var openInPreview = false
     @AppStorage(SettingsKey.loadRemoteImages) private var loadRemoteImages = true
+    @AppStorage(SettingsKey.quitAfterLastWindow) private var quitAfterLastWindow = true
 
     var body: some View {
         Form {
             Section("Opening") {
                 Toggle("Open documents in the preview only", isOn: $openInPreview)
                 Text("New windows start without the editor. Switch with ⌥⌘1, ⌥⌘2 and ⌥⌘3.").font(.caption).foregroundStyle(.secondary)
+            }
+            Section("Closing") {
+                Toggle("Quit when the last document window is closed", isOn: $quitAfterLastWindow)
+                Text("Off: the app stays open in the Dock after its last window closes, as most Mac apps do. ⌘Q always quits.").font(.caption).foregroundStyle(.secondary)
             }
             Section("Images") {
                 Toggle("Load remote images", isOn: $loadRemoteImages)
@@ -51,6 +56,7 @@ private struct EditorSettings: View {
     @AppStorage(SettingsKey.editorAutoPair) private var autoPair = true
     @AppStorage(SettingsKey.editorContinueLists) private var continueLists = true
     @AppStorage(SettingsKey.editorRenumberLists) private var renumberLists = true
+    @AppStorage(SettingsKey.editorImageFolder) private var imageFolder = "assets"
 
     private static let fonts: [String] = NSFontManager.shared.availableFontNames(with: .fixedPitchFontMask) ?? ["Menlo-Regular"]
 
@@ -80,6 +86,11 @@ private struct EditorSettings: View {
                 Toggle("Close brackets and quotes automatically", isOn: $autoPair)
                 Toggle("Continue lists and quotes on Return", isOn: $continueLists)
                 Toggle("Renumber ordered lists", isOn: $renumberLists)
+            }
+            Section("Images") {
+                TextField("Folder for pasted images", text: $imageFolder, prompt: Text("assets"))
+                Text("Images you paste or drop are saved in this folder next to the document. Leave it empty to save them beside the document.")
+                    .font(.caption).foregroundStyle(.secondary)
             }
             ThemesFolderSection()
         }

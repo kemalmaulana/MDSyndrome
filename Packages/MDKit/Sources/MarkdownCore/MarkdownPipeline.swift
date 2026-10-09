@@ -22,6 +22,9 @@ public struct RenderedDocument: Hashable, Sendable {
 
 public enum MarkdownPipeline {
     public static func render(_ text: String, options: MarkdownOptions) -> RenderedDocument {
+        let signposter = Signposts.signposter
+        let interval = signposter.beginInterval("parse", id: signposter.makeSignpostID())
+        defer { signposter.endInterval("parse", interval) }
         let document = MarkdownParser.parse(text, options: options)
         return RenderedDocument(
             document: document,
