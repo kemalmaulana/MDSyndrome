@@ -22,6 +22,8 @@ public struct EditorConfiguration: Hashable, Sendable {
     public var spellCheck = false
     /// What Tab inserts and ⇧Tab removes (ED-6).
     public var indentUnit = "    "
+    /// Where pasted and dropped images are saved, relative to the document's folder; empty means that folder itself (ED-11).
+    public var imageFolder = "assets"
 
     public init() {}
 
