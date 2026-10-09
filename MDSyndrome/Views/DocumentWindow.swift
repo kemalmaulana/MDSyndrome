@@ -125,7 +125,8 @@ struct DocumentWindow: View {
         let name = model.settings.previewThemeName
         let theme = model.previewThemes.first { $0.name == name } ?? .github
         return ExportService.Source(document: session.rendered.document, title: fileURL?.deletingPathExtension().lastPathComponent ?? "Untitled",
-                                    baseURL: fileURL?.deletingLastPathComponent(), theme: theme)
+                                    baseURL: fileURL?.deletingLastPathComponent(), theme: theme,
+                                    renderer: webRenderer, allowRemoteImages: model.settings.loadRemoteImages)
     }
 
     private var exportActions: ExportActions {
