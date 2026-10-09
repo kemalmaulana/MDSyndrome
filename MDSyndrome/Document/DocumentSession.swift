@@ -56,7 +56,10 @@ final class DocumentSession {
     private func render(_ text: String, request: Int) async {
         let renderer = renderer
         let options = options
+        let signposter = Signposts.signposter
+        let interval = signposter.beginInterval("render document", id: signposter.makeSignpostID())
         let result = await Task.detached(priority: .userInitiated) { renderer(text, options) }.value
+        signposter.endInterval("render document", interval)
         guard request == generation else { return }
         rendered = result
         renderedGeneration = request

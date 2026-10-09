@@ -3,7 +3,7 @@ SCHEME      := MDSyndrome
 DERIVED     := build/DerivedData
 XCODEBUILD  := xcodebuild -project $(PROJECT) -scheme $(SCHEME) -destination 'platform=macOS' -derivedDataPath $(DERIVED)
 
-.PHONY: gen build test test-core test-app test-ui run lint clean dist
+.PHONY: gen build test test-core test-app test-ui run lint clean dist perf
 
 gen:
 	xcodegen generate --quiet
@@ -31,6 +31,11 @@ run: build
 # PRD NF-1: only WebRenderKit may import WebKit.
 lint:
 	@! grep -rlE --include='*.swift' '^[[:space:]]*(@[A-Za-z]+[[:space:]]+)*((public|package|internal|fileprivate|private)[[:space:]]+)?import[[:space:]]+((class|struct|enum|protocol|func|var|let|typealias)[[:space:]]+)?WebKit([.[:space:]]|$$)' MDSyndrome Packages/MDKit/Sources | grep -v '/WebRenderKit/' || (echo "error: WebKit imported outside WebRenderKit" && false)
+
+# Prints the parse time for a 1 MB document (NF-4), then the launch, idle CPU and memory sampler (NF-2, NF-5; needs `make build`).
+perf:
+	PERF=1 swift test -c release -Xswiftc -enable-testing --package-path Packages/MDKit --filter PerformanceReportTests 2>&1 | grep -E "PERF|error:"
+	scripts/measure-launch.sh
 
 # Universal Release build packaged as dist/MDSyndrome-<version>-macOS.zip + .dmg + SHA256SUMS.txt
 #   make dist VERSION=1.2.3 [BUILD=42]
